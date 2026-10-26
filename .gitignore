@@ -1,0 +1,33 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Build & Dist artifacts
+build/
+dist/
+*.spec
+
+# User local configs & databases
+.steelnest_pro/
+*.db
+*.sqlite
+*.sqlite3
+
+# Windows thumbnail and shortcut files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Temporary scratch and test outputs
+scratch/
+test_*.png
+test_*.pdf
+test_*.dxf
+temp_*.pdf
+screenshot_*.png
+*.log
