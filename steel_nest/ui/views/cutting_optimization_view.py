@@ -16,7 +16,8 @@ from PyQt6.QtWidgets import (
     QTableWidgetItem, QHeaderView, QSplitter, QFrame, QCheckBox, QComboBox,
     QTabWidget, QTabBar, QMessageBox, QFileDialog, QDialog, QFormLayout,
     QDoubleSpinBox, QRadioButton, QButtonGroup, QScrollArea, QMenu, QToolButton,
-    QStackedWidget, QSlider, QApplication, QGroupBox, QAbstractItemView
+    QStackedWidget, QSlider, QApplication, QGroupBox, QAbstractItemView,
+    QLineEdit, QTextEdit
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QColor, QIcon, QAction, QPainter, QKeySequence, QShortcut, QCursor

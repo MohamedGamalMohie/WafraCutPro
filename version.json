@@ -1,10 +1,10 @@
 {
     "latest_version": "1.1.0",
     "release_date": "2026-10-26",
-    "download_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases/download/v1.1.0/WafraCutPro_v1.1.0.zip",
+    "download_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases/download/v1.1.0/WafraCutPro_v1.1.0_Setup.exe",
     "release_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases",
-    "changelog_ar": "• حل مشكلة النسخ واللصق بالكامل داخل البرنامج وبين جداول القطع والاستوك\n• دعم نسخ النتائج من جدول Results إلى الإكسيل بـ Ctrl+C\n• تبسيط مركز التحديثات إلى زر واحد ذكي وسريع\n• تحسينات شاملة في الأداء وتقليل استهلاك الرامات",
-    "changelog_en": "• Fixed copy and paste inside the program and between tables\n• Direct Ctrl+C copy from Results table to Excel\n• Single-click streamlined update center\n• High performance and minimal RAM consumption",
-    "file_size_mb": 45.0,
+    "changelog_ar": "• حل مشكلة النسخ واللصق بالكامل داخل البرنامج وبين جداول القطع والاستوك\n• توفير برنامج التثبيت الموحد الاحترافي Setup Wizard بضغطة زر واحدة\n• دعم نسخ النتائج من جدول Results إلى الإكسيل بـ Ctrl+C\n• تبسيط مركز التحديثات إلى زر واحد ذكي وسريع\n• تحسينات شاملة في الأداء وتقليل استهلاك الرامات",
+    "changelog_en": "• Fixed copy and paste inside the program and between tables\n• Professional one-file Setup Wizard installer\n• Direct Ctrl+C copy from Results table to Excel\n• Single-click streamlined update center\n• High performance and minimal RAM consumption",
+    "file_size_mb": 100.4,
     "mandatory": false
 }
