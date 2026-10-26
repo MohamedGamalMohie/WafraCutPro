@@ -20,7 +20,7 @@ from steel_nest.config import APP_VERSION, APP_NAME
 CONFIG_DIR = Path.home() / ".steelnest_pro"
 CONFIG_FILE = CONFIG_DIR / "updater_config.json"
 
-DEFAULT_MANIFEST_URL = "https://raw.githubusercontent.com/mohamed-gamal/wafracut-pro/main/version.json"
+DEFAULT_MANIFEST_URL = "https://raw.githubusercontent.com/MohamedGamalMohie/WafraCutPro/main/version.json"
 
 
 def parse_version(v_str: str) -> Tuple[int, ...]:

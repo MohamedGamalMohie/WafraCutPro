@@ -1,7 +1,8 @@
 {
     "latest_version": "1.1.0",
     "release_date": "2026-10-26",
-    "download_url": "https://github.com/mohamed-gamal/wafracut-pro/releases/download/v1.1.0/WafraCutPro_Setup.exe",
+    "download_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases/download/v1.1.0/WafraCutPro.exe",
+    "release_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases",
     "changelog_ar": "• تسريع محرك تقطيع الألواح والكمرات بنسبة 35%\n• إضافة ميزة النسخ واللصق الذكي ثنائي الأبعاد من وإلى الإكسيل\n• تحسين استهلاك الرامات والتفريغ التلقائي للذاكرة بعد التحسين\n• إضافة ميزة التحديثات التلقائية والتنبيهات المباشرة\n• تصدير تقارير ورش عمل احترافية بدقة عالية جداً بصيغة PDF",
     "changelog_en": "• 35% faster cutting optimization algorithm\n• Full 2D matrix copy & paste from/to Excel\n• Memory trimming and RAM optimization for all PCs\n• Built-in Smart Auto-Updater and notification system\n• High-DPI professional workshop PDF reports",
     "file_size_mb": 45.2,
