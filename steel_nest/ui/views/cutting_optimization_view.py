@@ -1885,31 +1885,35 @@ class CuttingOptimizationView(QWidget):
             if not data_matrix:
                 return
 
-            # Detect if data includes a leading numeric index column (e.g. "1", "2", "3"...)
-            has_index_col = (
-                len(data_matrix[0]) >= 6 and
-                data_matrix[0][0].isdigit() and
-                int(data_matrix[0][0]) < 1000
-            )
-
-            # Determine target start row and column
+            # Determine target start row and column from selection or current cell
+            selected_ranges = table.selectedRanges()
             curr_r = table.currentRow()
             curr_c = table.currentColumn()
 
-            if table.rowCount() == 0 or curr_r < 0:
-                start_r = table.rowCount()
-            else:
+            if selected_ranges:
+                sel_top = min(r.topRow() for r in selected_ranges)
+                sel_left = min(r.leftColumn() for r in selected_ranges)
+                sel_right = max(r.rightColumn() for r in selected_ranges)
+                start_r = sel_top
+                if sel_left == 0 and sel_right > 0 and len(data_matrix[0]) < table.columnCount():
+                    start_c = 1
+                else:
+                    start_c = sel_left
+            elif curr_r >= 0 and curr_c >= 0:
                 start_r = curr_r
-
-            # If user clicked on a data column (col >= 1) or if whole row was selected
-            if curr_c <= 0:
-                start_c = 1
-                if has_index_col:
-                    data_matrix = [r[1:] for r in data_matrix]
+                start_c = curr_c if curr_c > 0 else 1
             else:
-                start_c = curr_c
-                if has_index_col:
-                    data_matrix = [r[1:] for r in data_matrix]
+                start_r = 0
+                start_c = 1
+
+            # Detect if data genuinely includes a leading numeric index column (e.g. "1", "2", "3"...)
+            has_index_col = (
+                len(data_matrix[0]) >= table.columnCount() and
+                data_matrix[0][0].strip() == "1" and
+                (len(data_matrix) == 1 or data_matrix[1][0].strip() in ("2", "1"))
+            )
+            if has_index_col and start_c >= 1:
+                data_matrix = [r[1:] for r in data_matrix]
 
             # Ensure table has enough rows
             needed_rows = start_r + len(data_matrix)
@@ -1931,6 +1935,17 @@ class CuttingOptimizationView(QWidget):
                     idx_item = QTableWidgetItem(f"{target_r + 1}")
                     idx_item.setCheckState(Qt.CheckState.Checked)
                     table.setItem(target_r, 0, idx_item)
+
+                # Check if pasting a full row between Pieces and Stock
+                is_full_row = (start_c == 1 and len(row_cells) >= 5)
+
+                if is_full_row and is_stock and len(row_cells) >= 6 and row_cells[4].upper() in ("YES", "NO", "TRUE", "FALSE"):
+                    stock_cells = [row_cells[0], row_cells[1], row_cells[2], row_cells[3], row_cells[5]]
+                    stock_cells.append(row_cells[6] if len(row_cells) > 6 else "0.0")
+                    row_cells = stock_cells
+                elif is_full_row and not is_stock and len(row_cells) >= 6 and not row_cells[4].upper() in ("YES", "NO", "TRUE", "FALSE"):
+                    piece_cells = [row_cells[0], row_cells[1], row_cells[2], row_cells[3], "YES", row_cells[4]]
+                    row_cells = piece_cells
 
                 for j, cell_str in enumerate(row_cells):
                     target_c = start_c + j
