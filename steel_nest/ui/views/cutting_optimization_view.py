@@ -887,6 +887,13 @@ class CuttingOptimizationView(QWidget):
         """)
         self.right_stack.addWidget(self.table_results_text)
         self.table_results_text.cellClicked.connect(self._on_results_text_row_clicked)
+        QShortcut(QKeySequence.StandardKey.Copy, self.table_results_text).activated.connect(
+            lambda: self._handle_clipboard_copy(self.table_results_text)
+        )
+        self.table_results_text.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.table_results_text.customContextMenuRequested.connect(
+            self._show_results_table_context_menu
+        )
 
         # Page 2: Rich Statistics Dashboard
         self.stats_dashboard = StatisticsDashboard()
@@ -1766,6 +1773,12 @@ class CuttingOptimizationView(QWidget):
     def _handle_clipboard_copy(self, table: QTableWidget):
         """Copies selected table cells/rows as clean tab-separated values to system clipboard (Ctrl+C)."""
         try:
+            focus_w = QApplication.focusWidget()
+            if isinstance(focus_w, (QLineEdit, QTextEdit)):
+                if hasattr(focus_w, 'hasSelectedText') and focus_w.hasSelectedText():
+                    focus_w.copy()
+                    return
+
             selected_ranges = table.selectedRanges()
             if not selected_ranges:
                 curr_item = table.currentItem()
@@ -1779,10 +1792,15 @@ class CuttingOptimizationView(QWidget):
             min_c = min(r.leftColumn() for r in selected_ranges)
             max_c = max(r.rightColumn() for r in selected_ranges)
 
+            # When copying whole rows or ranges starting from column 0,
+            # omit the '#' row counter column (col 0) unless ONLY column 0 was selected.
+            omit_index = (min_c == 0 and max_c > 0 and table != self.table_results_text)
+            data_start_c = 1 if omit_index else min_c
+
             lines = []
             for r in range(min_r, max_r + 1):
                 row_vals = []
-                for c in range(min_c, max_c + 1):
+                for c in range(data_start_c, max_c + 1):
                     item = table.item(r, c)
                     if not item:
                         row_vals.append("")
@@ -1798,6 +1816,12 @@ class CuttingOptimizationView(QWidget):
         except Exception as ex:
             import traceback
             traceback.print_exc()
+
+    def _show_results_table_context_menu(self, pos):
+        menu = QMenu(self)
+        act_copy = menu.addAction("📋 Copy Selected (نسخ المخرجات المحددة - Ctrl+C)")
+        act_copy.triggered.connect(lambda: self._handle_clipboard_copy(self.table_results_text))
+        menu.exec(self.table_results_text.viewport().mapToGlobal(pos))
 
     def _show_table_context_menu(self, table: QTableWidget, pos, is_stock: bool):
         """Right-click context menu for tables providing Copy, Paste, Insert, and Delete."""
@@ -1824,6 +1848,11 @@ class CuttingOptimizationView(QWidget):
     def _handle_clipboard_paste(self, table: QTableWidget, is_stock: bool = False):
         """Pastes clipboard tabular data into table cell-by-cell matching professional spreadsheet behavior."""
         try:
+            focus_w = QApplication.focusWidget()
+            if isinstance(focus_w, (QLineEdit, QTextEdit)):
+                focus_w.paste()
+                return
+
             clipboard = QApplication.clipboard()
             raw_text = clipboard.text()
             if not raw_text or not raw_text.strip():
@@ -1855,6 +1884,13 @@ class CuttingOptimizationView(QWidget):
             if not data_matrix:
                 return
 
+            # Detect if data includes a leading numeric index column (e.g. "1", "2", "3"...)
+            has_index_col = (
+                len(data_matrix[0]) >= 6 and
+                data_matrix[0][0].isdigit() and
+                int(data_matrix[0][0]) < 1000
+            )
+
             # Determine target start row and column
             curr_r = table.currentRow()
             curr_c = table.currentColumn()
@@ -1864,19 +1900,15 @@ class CuttingOptimizationView(QWidget):
             else:
                 start_r = curr_r
 
-            # If data has 6 or 7 columns and first column is numeric index (1, 2, 3...)
-            has_index_col = (
-                len(data_matrix[0]) >= 6 and
-                data_matrix[0][0].isdigit() and
-                int(data_matrix[0][0]) < 1000
-            )
-
-            if curr_c < 0:
-                start_c = 0 if has_index_col else 1
-            elif curr_c == 0 and not has_index_col:
+            # If user clicked on a data column (col >= 1) or if whole row was selected
+            if curr_c <= 0:
                 start_c = 1
+                if has_index_col:
+                    data_matrix = [r[1:] for r in data_matrix]
             else:
                 start_c = curr_c
+                if has_index_col:
+                    data_matrix = [r[1:] for r in data_matrix]
 
             # Ensure table has enough rows
             needed_rows = start_r + len(data_matrix)

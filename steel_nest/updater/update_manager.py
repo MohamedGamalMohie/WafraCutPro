@@ -257,6 +257,13 @@ class UpdateManager(QObject):
         pid = os.getpid()
         bat_path = Path(os.environ.get("TEMP", ".")) / f"wafracut_update_{pid}.bat"
 
+        app_dir = os.path.dirname(current_exe)
+        is_zip = str(new_file_path).lower().endswith(".zip")
+        if is_zip:
+            replace_cmd = f'tar -xf "{new_file_path}" -C "{app_dir}" >nul 2>&1 || powershell -command "Expand-Archive -Force \'{new_file_path}\' \'{app_dir}\'"'
+        else:
+            replace_cmd = f'copy /Y "{new_file_path}" "{current_exe}" >nul'
+
         # Batch script that loops until old PID dies, then replaces and starts exe
         bat_script = f"""@echo off
 setlocal
@@ -268,7 +275,7 @@ if not errorlevel 1 (
     goto wait_loop
 )
 
-copy /Y "{new_file_path}" "{current_exe}" >nul
+{replace_cmd}
 if errorlevel 1 (
     echo Update failed to overwrite executable.
     pause
