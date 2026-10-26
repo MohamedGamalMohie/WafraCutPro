@@ -72,7 +72,8 @@ def test_update_center_widget_ui(qapp):
         file_size_mb=45.2
     )
     widget = UpdateCenterWidget(update_manager=mgr, preloaded_info=info)
-    assert widget.btn_install.isEnabled()
+    assert widget.btn_action.isEnabled()
+    assert "v1.1.0" in widget.btn_action.text()
     assert "v1.1.0" in widget.card_latest.findChild(type(widget.lbl_progress_status), "val").text()
     assert "التحديث التلقائي" in widget.txt_changelog.toPlainText() or "التحديث التلقائي" in widget.txt_changelog.toHtml()
 
