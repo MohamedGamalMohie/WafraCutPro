@@ -1,4 +1,4 @@
-# SteelNest Pro — Professional Steel Nesting & Cutting Optimization Software for Windows
+# WafraCutPro — Professional Steel Nesting & Cutting Optimization Software for Windows
 
 ![Python](https://img.shields.io/badge/Python-3.12%2B-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011%20(64--bit)-blue)
