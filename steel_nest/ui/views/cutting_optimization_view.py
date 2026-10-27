@@ -9,6 +9,9 @@ import sys
 import os
 import re
 import uuid
+import json
+from pathlib import Path
+from datetime import datetime
 from typing import List, Optional
 from collections import defaultdict
 from PyQt6.QtWidgets import (
@@ -26,7 +29,7 @@ from PyQt6.QtPrintSupport import QPrinter, QPrintDialog
 from steel_nest.models.part import PartCutItem, PlatePartItem
 from steel_nest.models.stock import StockItem, RemnantItem
 from steel_nest.models.project import Project, ProjectSettings
-from steel_nest.config import LinearOptimizationMode, NestingObjective, MaterialType, RemnantStatus
+from steel_nest.config import LinearOptimizationMode, NestingObjective, MaterialType, RemnantStatus, APP_VERSION
 from steel_nest.database.repositories import CutListRepository, StockRepository, ProjectRepository, RemnantRepository
 from steel_nest.reporting.excel_importer import ExcelDataImporter
 from steel_nest.reporting.template_generator import TemplateGenerator
@@ -285,6 +288,7 @@ class CuttingOptimizationView(QWidget):
         self.remnant_repo = remnant_repo or RemnantRepository(db)
 
         self.active_project_id: Optional[str] = None
+        self.current_project_file: Optional[str] = None
         self.current_result: Optional[OptimizationResult] = None
         self.worker: Optional[OptimizationWorker] = None
 
@@ -296,7 +300,9 @@ class CuttingOptimizationView(QWidget):
         self.update_manager.update_detected.connect(self._on_update_detected_in_view)
 
         self._init_ui()
-        self._load_initial_defaults()
+        self._load_last_stock()
+        self.pieces_table.setRowCount(0)
+        self.stock_table.itemChanged.connect(self._on_stock_table_changed)
 
     def _init_ui(self):
         main_layout = QHBoxLayout(self)
@@ -306,14 +312,16 @@ class CuttingOptimizationView(QWidget):
         # Central Horizontal Splitter dividing Left (Inputs) and Right (Results & Drawing)
         self.h_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.h_splitter.setHandleWidth(8)
+        self.h_splitter.setChildrenCollapsible(False)
+        self.h_splitter.setOpaqueResize(True)
         self.h_splitter.setStyleSheet("""
             QSplitter::handle:horizontal {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #CBD5E1, stop:0.5 #94A3B8, stop:1 #CBD5E1);
+                background-color: #CBD5E1;
                 border-left: 1px solid #94A3B8;
                 border-right: 1px solid #94A3B8;
             }
             QSplitter::handle:horizontal:hover {
-                background-color: #3B82F6;
+                background-color: #2563EB;
             }
         """)
 
@@ -321,6 +329,7 @@ class CuttingOptimizationView(QWidget):
         # 1. LEFT PANE: PIECES & STOCK (Vertical Splitter)
         # -------------------------------------------------------------
         left_container = QWidget()
+        left_container.setMinimumWidth(320)
         left_layout = QVBoxLayout(left_container)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(0)
@@ -369,14 +378,14 @@ class CuttingOptimizationView(QWidget):
         btn_p_open = QPushButton("Open")
         btn_p_open.setStyleSheet(btn_style_compact)
         btn_p_open.setIcon(IconManager.get_icon("open", 14))
-        btn_p_open.setToolTip("Open / Load saved project")
-        btn_p_open.clicked.connect(self._open_project)
+        btn_p_open.setToolTip("Open / Load saved project file (*.wcp)")
+        btn_p_open.clicked.connect(lambda: self.open_project_from_file(None))
         p_toolbar.addWidget(btn_p_open)
 
         btn_p_save = QPushButton("Save")
         btn_p_save.setStyleSheet(btn_style_compact)
         btn_p_save.setIcon(IconManager.get_icon("save", 14))
-        btn_p_save.setToolTip("Save current pieces and stock")
+        btn_p_save.setToolTip("Save project file (*.wcp)")
         btn_p_save.clicked.connect(self._save_project)
         p_toolbar.addWidget(btn_p_save)
 
@@ -406,18 +415,6 @@ class CuttingOptimizationView(QWidget):
         btn_p_more.setToolTip("More options & templates")
         btn_p_more.clicked.connect(self._show_pieces_menu)
         p_toolbar.addWidget(btn_p_more)
-
-        btn_p_fit = QPushButton("⬌ Fit")
-        btn_p_fit.setStyleSheet(btn_style_compact)
-        btn_p_fit.setToolTip("توسيع أعمدة جدول القطع لمنع اختصار النصوص بالنقاط (Auto-fit columns)")
-        btn_p_fit.clicked.connect(lambda: self.pieces_table.resizeColumnsToContents())
-        p_toolbar.addWidget(btn_p_fit)
-
-        btn_expand_tables = QPushButton("⮂ Expand")
-        btn_expand_tables.setStyleSheet(btn_style_compact)
-        btn_expand_tables.setToolTip("توسيع/تصغير لوحة الجداول على الشاشة (Toggle 72% / 48% width)")
-        btn_expand_tables.clicked.connect(self._toggle_expand_tables)
-        p_toolbar.addWidget(btn_expand_tables)
 
         p_toolbar.addStretch()
         pw_layout.addLayout(p_toolbar)
@@ -558,12 +555,6 @@ class CuttingOptimizationView(QWidget):
         btn_s_more.setStyleSheet(btn_style_compact)
         btn_s_more.clicked.connect(self._show_stock_menu)
         s_toolbar.addWidget(btn_s_more)
-
-        btn_s_fit = QPushButton("⬌ Fit")
-        btn_s_fit.setStyleSheet(btn_style_compact)
-        btn_s_fit.setToolTip("توسيع أعمدة جدول المخزن لمنع اختصار النصوص بالنقاط (Auto-fit columns)")
-        btn_s_fit.clicked.connect(lambda: self.stock_table.resizeColumnsToContents())
-        s_toolbar.addWidget(btn_s_fit)
 
         s_toolbar.addStretch()
         sw_layout.addLayout(s_toolbar)
@@ -759,7 +750,6 @@ class CuttingOptimizationView(QWidget):
         self.res_tabs.addTab(QWidget(), "📄 Results (2D)")
         self.res_tabs.addTab(QWidget(), "📊 Results (1D)")
         self.res_tabs.addTab(QWidget(), "📈 Statistics")
-        self.res_tabs.addTab(QWidget(), "🚀 Update (التحديثات)")
         self.res_tabs.currentChanged.connect(self._on_res_tab_changed)
         right_layout.addWidget(self.res_tabs)
 
@@ -900,11 +890,6 @@ class CuttingOptimizationView(QWidget):
         self.stats_dashboard = StatisticsDashboard()
         self.right_stack.addWidget(self.stats_dashboard)
 
-        # Page 3: Update Center Widget
-        self.update_center = UpdateCenterWidget(update_manager=self.update_manager, parent=self)
-        self.update_center.update_detected.connect(self._on_update_detected_in_view)
-        self.right_stack.addWidget(self.update_center)
-
         right_layout.addWidget(self.right_stack, 1)
 
         # Right Pane Bottom Status Bar
@@ -940,8 +925,18 @@ class CuttingOptimizationView(QWidget):
         right_layout.addWidget(self.right_status_frame)
         self.h_splitter.addWidget(right_container)
 
-        self.h_splitter.setSizes([600, 750])
+        # Shift splitter to the left (left inputs: 440px, right results: 960px)
+        self.h_splitter.setSizes([440, 960])
+        handle = self.h_splitter.handle(1)
+        if handle:
+            handle.setCursor(QCursor(Qt.CursorShape.SplitHCursor))
         main_layout.addWidget(self.h_splitter)
+
+        # Results tabs and diagram controls are hidden initially until Start Optimization is clicked
+        self.res_tabs.setVisible(False)
+        self.ctrl_frame.setVisible(False)
+        self.pattern_tabs.setVisible(False)
+        self.right_status_frame.setVisible(False)
 
     # -------------------------------------------------------------
     # Initial Data & Helpers
@@ -1146,6 +1141,13 @@ class CuttingOptimizationView(QWidget):
 
     def _show_pieces_menu(self):
         menu = QMenu(self)
+        a_open = menu.addAction("📂 Open Project... (فتح مشروع)")
+        a_open.triggered.connect(lambda: self.open_project_from_file(None))
+        a_save = menu.addAction("💾 Save Project (حفظ المشروع)")
+        a_save.triggered.connect(self._save_project)
+        a_save_as = menu.addAction("💾 Save Project As... (حفظ المشروع باسم)")
+        a_save_as.triggered.connect(self._save_project_as)
+        menu.addSeparator()
         a_import = menu.addAction("📥 Import from Excel / CSV")
         a_import.triggered.connect(self._import_excel)
         a_tmpl = menu.addAction("📄 Download Excel Template")
@@ -1268,22 +1270,189 @@ class CuttingOptimizationView(QWidget):
             self.linear_mode = vals["mode"]
             set_current_language(vals["language"])
 
-    def _open_project(self):
-        projects = self.project_repo.list_all()
-        if not projects:
-            QMessageBox.information(self, "Open Project", "No saved projects found in local database.")
-            return
-        p = projects[0]
-        self.load_project_data(p.id)
+    def save_project_as_file(self, filepath: Optional[str] = None):
+        """Saves entire project (Pieces, Stock, Settings) to a .wcp file."""
+        if not filepath:
+            initial_path = str(Path.home() / "Documents" / "CuttingProject.wcp")
+            filepath, _ = QFileDialog.getSaveFileName(
+                self,
+                "حفظ المشروع باسم (Save Project As)",
+                initial_path,
+                "WafraCut Project (*.wcp);;JSON Files (*.json);;All Files (*.*)"
+            )
+            if not filepath:
+                return
+
+        pieces_data = []
+        for r in range(self.pieces_table.rowCount()):
+            chk = self.pieces_table.item(r, 0)
+            checked = (chk.checkState() == Qt.CheckState.Checked) if chk else True
+            l_str = self.pieces_table.item(r, 1).text().strip() if self.pieces_table.item(r, 1) else ""
+            w_str = self.pieces_table.item(r, 2).text().strip() if self.pieces_table.item(r, 2) else ""
+            q_str = self.pieces_table.item(r, 3).text().strip() if self.pieces_table.item(r, 3) else ""
+            m_str = self.pieces_table.item(r, 4).text().strip() if self.pieces_table.item(r, 4) else ""
+            rot_item = self.pieces_table.item(r, 5)
+            rot = (rot_item.checkState() == Qt.CheckState.Checked) if rot_item else True
+            lbl = self.pieces_table.item(r, 6).text().strip() if self.pieces_table.item(r, 6) else ""
+            if any([l_str, w_str, q_str, m_str, lbl]):
+                pieces_data.append({
+                    "checked": checked,
+                    "length": l_str,
+                    "width": w_str,
+                    "quantity": q_str,
+                    "material": m_str,
+                    "rotation": rot,
+                    "label": lbl
+                })
+
+        stock_data = []
+        for r in range(self.stock_table.rowCount()):
+            chk = self.stock_table.item(r, 0)
+            checked = (chk.checkState() == Qt.CheckState.Checked) if chk else True
+            l_str = self.stock_table.item(r, 1).text().strip() if self.stock_table.item(r, 1) else ""
+            w_str = self.stock_table.item(r, 2).text().strip() if self.stock_table.item(r, 2) else ""
+            q_str = self.stock_table.item(r, 3).text().strip() if self.stock_table.item(r, 3) else ""
+            m_str = self.stock_table.item(r, 4).text().strip() if self.stock_table.item(r, 4) else ""
+            lbl = self.stock_table.item(r, 5).text().strip() if self.stock_table.item(r, 5) else ""
+            pr = self.stock_table.item(r, 6).text().strip() if self.stock_table.item(r, 6) else "0.0"
+            if any([l_str, w_str, q_str, m_str, lbl]):
+                stock_data.append({
+                    "checked": checked,
+                    "length": l_str,
+                    "width": w_str,
+                    "quantity": q_str,
+                    "material": m_str,
+                    "label": lbl,
+                    "price": pr
+                })
+
+        settings_dict = {
+            "blade_kerf_linear": getattr(self.settings, 'blade_kerf_linear', 3.0),
+            "blade_kerf_plate": getattr(self.settings, 'blade_kerf_plate', 3.0),
+            "trim_left": getattr(self.settings, 'trim_left', 5.0),
+            "trim_right": getattr(self.settings, 'trim_right', 5.0),
+            "trim_top": getattr(self.settings, 'trim_top', 5.0),
+            "trim_bottom": getattr(self.settings, 'trim_bottom', 5.0),
+            "min_remnant_length": getattr(self.settings, 'min_remnant_length', 300.0),
+            "min_remnant_width": getattr(self.settings, 'min_remnant_width', 300.0),
+            "linear_mode": self.linear_mode.value if hasattr(self.linear_mode, 'value') else str(self.linear_mode)
+        }
+
+        payload = {
+            "format": "WafraCutPro_Project",
+            "version": APP_VERSION,
+            "saved_at": datetime.now().isoformat(),
+            "pieces": pieces_data,
+            "stock": stock_data,
+            "settings": settings_dict
+        }
+
+        try:
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(payload, f, ensure_ascii=False, indent=2)
+            self.current_project_file = filepath
+            self._save_last_stock()
+            QMessageBox.information(
+                self,
+                "حفظ المشروع",
+                f"تم حفظ المشروع بالكامل بنجاح في:\n{filepath}"
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "خطأ في الحفظ", f"فشل حفظ ملف المشروع:\n{e}")
+
+    def open_project_from_file(self, filepath: Optional[str] = None):
+        """Loads entire project (Pieces, Stock, Settings) from a .wcp file."""
+        if not filepath:
+            initial_path = str(Path.home() / "Documents")
+            filepath, _ = QFileDialog.getOpenFileName(
+                self,
+                "فتح مشروع (Open Project)",
+                initial_path,
+                "WafraCut Project (*.wcp *.json);;All Files (*.*)"
+            )
+            if not filepath:
+                return
+
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+            pieces = data.get("pieces", [])
+            self.pieces_table.setRowCount(len(pieces))
+            for r, p in enumerate(pieces):
+                self._set_piece_row(
+                    r,
+                    p.get("length", ""),
+                    p.get("width", ""),
+                    p.get("quantity", 1),
+                    p.get("material", "wood"),
+                    p.get("rotation", True),
+                    p.get("label", "")
+                )
+                chk = self.pieces_table.item(r, 0)
+                if chk:
+                    chk.setCheckState(Qt.CheckState.Checked if p.get("checked", True) else Qt.CheckState.Unchecked)
+
+            stock = data.get("stock", [])
+            self._is_loading_stock = True
+            self.stock_table.setRowCount(len(stock))
+            for r, s in enumerate(stock):
+                self._set_stock_row(
+                    r,
+                    s.get("length", ""),
+                    s.get("width", ""),
+                    s.get("quantity", 1),
+                    s.get("material", "wood"),
+                    s.get("label", ""),
+                    s.get("price", 0.0)
+                )
+                chk = self.stock_table.item(r, 0)
+                if chk:
+                    chk.setCheckState(Qt.CheckState.Checked if s.get("checked", True) else Qt.CheckState.Unchecked)
+            self._is_loading_stock = False
+
+            settings_dict = data.get("settings", {})
+            for k, v in settings_dict.items():
+                if hasattr(self.settings, k):
+                    setattr(self.settings, k, v)
+
+            self.current_project_file = filepath
+            self._save_last_stock()
+            self._reset_results_view()
+            QMessageBox.information(
+                self,
+                "فتح المشروع",
+                f"تم فتح المشروع بنجاح من:\n{filepath}\n"
+                f"تم تحميل {len(pieces)} قطعة و {len(stock)} استوك."
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "خطأ في فتح الملف", f"فشل فتح ملف المشروع:\n{e}")
 
     def _save_project(self):
-        if not self.active_project_id:
-            projects = self.project_repo.list_all()
-            if projects:
-                self.active_project_id = projects[0].id
-        if self.active_project_id:
-            self.save_project_data(self.active_project_id)
-            QMessageBox.information(self, "Saved", "Pieces and stock inventory successfully saved.")
+        if self.current_project_file:
+            self.save_project_as_file(self.current_project_file)
+        else:
+            self.save_project_as_file(None)
+
+    def _save_project_as(self):
+        self.save_project_as_file(None)
+
+    def _open_project(self):
+        self.open_project_from_file(None)
+
+    def _reset_results_view(self):
+        self.current_result = None
+        self.canvas.set_plan(None)
+        self.table_results_text.setRowCount(0)
+        self.res_tabs.setVisible(False)
+        self.ctrl_frame.setVisible(False)
+        self.pattern_tabs.setVisible(False)
+        self.right_status_frame.setVisible(False)
+        self.right_stack.setCurrentIndex(0)
+        self.lbl_status_util.setText("Utilization: 0.00 %")
+        self.lbl_status_scrap.setText("Scrap: 0.00 %")
+        self.lbl_status_qty.setText("Quantity: 0")
+        self.lbl_status_coords.setText("(0, 0)")
 
     # -------------------------------------------------------------
     # OPTIMIZATION ENGINE & RESULTS
@@ -1295,6 +1464,7 @@ class CuttingOptimizationView(QWidget):
             QMessageBox.warning(self, "Notice", "Please enter at least one piece to cut.")
             return
 
+        self._save_last_stock()
         self.btn_start.setEnabled(False)
         self.btn_start.setText("⏳ Calculating...")
 
@@ -1315,7 +1485,7 @@ class CuttingOptimizationView(QWidget):
 
     def _on_optimization_done(self, result: OptimizationResult):
         self.btn_start.setEnabled(True)
-        self.btn_start.setText("▶ Start")
+        self.btn_start.setText("▶ Start Optimization")
         self.current_result = result
         self.stats_dashboard.update_statistics(result)
         self.optimization_finished.emit(result)
@@ -1329,6 +1499,11 @@ class CuttingOptimizationView(QWidget):
                 ctypes.windll.psapi.EmptyWorkingSet(ctypes.windll.kernel32.GetCurrentProcess())
             except Exception:
                 pass
+
+        # Reveal results tabs and controls now that optimization has completed
+        self.res_tabs.setVisible(True)
+        self.ctrl_frame.setVisible(True)
+        self.right_status_frame.setVisible(True)
 
         # Select matching result tab
         if result.plate_plans:
@@ -1474,16 +1649,11 @@ class CuttingOptimizationView(QWidget):
             self.right_stack.setCurrentIndex(2)  # Page 2: Statistics Dashboard
             self.right_status_frame.hide()
             self.stats_dashboard.update_statistics(self.current_result)
-        elif idx == 3:  # Update Center Tab
-            self.ctrl_frame.hide()
-            self.pattern_tabs.hide()
-            self.right_stack.setCurrentIndex(3)  # Page 3: Update Center
-            self.right_status_frame.hide()
-            self.update_center.refresh_view()
         else:  # 2D (0) or 1D (1)
-            self.ctrl_frame.show()
-            self.pattern_tabs.show()
-            self.right_status_frame.show()
+            if self.res_tabs.isVisible():
+                self.ctrl_frame.show()
+                self.pattern_tabs.show()
+                self.right_status_frame.show()
             if self.chk_as_text.isChecked():
                 self.right_stack.setCurrentIndex(1)
                 self._update_results_text_table()
@@ -1492,11 +1662,10 @@ class CuttingOptimizationView(QWidget):
             self._populate_pattern_tabs()
 
     def _on_update_detected_in_view(self, info: UpdateInfo):
-        if info and info.has_update:
-            self.res_tabs.setTabText(3, f"🚀 Update (تحديث v{info.version} متاح)")
+        pass
 
     def _on_as_text_toggled(self, checked: bool):
-        if self.res_tabs.currentIndex() in (2, 3):
+        if self.res_tabs.currentIndex() == 2:
             return
         if checked:
             self.right_stack.setCurrentIndex(1)
@@ -2230,3 +2399,82 @@ class CuttingOptimizationView(QWidget):
             self.cut_repo.add_plate(pl, project_id)
         for s in stock_1d + stock_2d:
             self.stock_repo.add(s)
+
+    def _on_stock_table_changed(self, item=None):
+        if getattr(self, '_is_loading_stock', False):
+            return
+        self._save_last_stock()
+
+    def _save_last_stock(self):
+        """Persists the current stock table rows so they are preserved across restarts."""
+        try:
+            app_dir = Path.home() / ".steelnest_pro"
+            app_dir.mkdir(parents=True, exist_ok=True)
+            stock_file = app_dir / "last_stock.json"
+            rows = []
+            for r in range(self.stock_table.rowCount()):
+                chk = self.stock_table.item(r, 0)
+                checked = (chk.checkState() == Qt.CheckState.Checked) if chk else True
+                l_str = self.stock_table.item(r, 1).text().strip() if self.stock_table.item(r, 1) else ""
+                w_str = self.stock_table.item(r, 2).text().strip() if self.stock_table.item(r, 2) else ""
+                q_str = self.stock_table.item(r, 3).text().strip() if self.stock_table.item(r, 3) else ""
+                m_str = self.stock_table.item(r, 4).text().strip() if self.stock_table.item(r, 4) else ""
+                lbl_str = self.stock_table.item(r, 5).text().strip() if self.stock_table.item(r, 5) else ""
+                p_str = self.stock_table.item(r, 6).text().strip() if self.stock_table.item(r, 6) else "0.0"
+                if any([l_str, w_str, q_str, m_str, lbl_str]):
+                    rows.append({
+                        "checked": checked,
+                        "length": l_str,
+                        "width": w_str,
+                        "quantity": q_str,
+                        "material": m_str,
+                        "label": lbl_str,
+                        "price": p_str
+                    })
+            with open(stock_file, "w", encoding="utf-8") as f:
+                json.dump(rows, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+    def _load_last_stock(self):
+        """Loads the last saved stock table, or falls back to standard inventory."""
+        self._is_loading_stock = True
+        try:
+            stock_file = Path.home() / ".steelnest_pro" / "last_stock.json"
+            if stock_file.exists():
+                with open(stock_file, "r", encoding="utf-8") as f:
+                    rows = json.load(f)
+                if rows:
+                    self.stock_table.setRowCount(len(rows))
+                    for r, item in enumerate(rows):
+                        self._set_stock_row(
+                            r,
+                            item.get("length", ""),
+                            item.get("width", ""),
+                            item.get("quantity", 1),
+                            item.get("material", "wood"),
+                            item.get("label", ""),
+                            item.get("price", 0.0)
+                        )
+                        chk = self.stock_table.item(r, 0)
+                        if chk:
+                            chk.setCheckState(Qt.CheckState.Checked if item.get("checked", True) else Qt.CheckState.Unchecked)
+                    return
+        except Exception:
+            pass
+        finally:
+            self._is_loading_stock = False
+
+        # Fallback default initial stock if no saved stock exists yet
+        demo_stock = [
+            (12000.0, 0.0,    15, "HEA 200", "STK-HEA200", 0.0),
+            (12000.0, 0.0,    10, "IPE 200", "STK-IPE200", 0.0),
+            (12000.0, 0.0,    20, "IPE 300", "STK-IPE300", 0.0),
+            (6000.0,  0.0,    20, "IPE 300", "STK-6M",     0.0),
+            (6000.0,  2000.0, 5,  "PL 12mm", "STK-PL12",   0.0),
+        ]
+        self._is_loading_stock = True
+        self.stock_table.setRowCount(len(demo_stock))
+        for r, (l, w, q, mat, lbl, pr) in enumerate(demo_stock):
+            self._set_stock_row(r, l, w, q, mat, lbl, pr)
+        self._is_loading_stock = False

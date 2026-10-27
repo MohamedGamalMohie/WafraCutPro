@@ -1,10 +1,10 @@
 {
-    "latest_version": "1.1.0",
-    "release_date": "2026-10-26",
-    "download_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases/download/v1.1.0/WafraCutPro_v1.1.0_Setup.exe",
+    "latest_version": "1.2.0",
+    "release_date": "2026-10-27",
+    "download_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases/download/v1.2.0/WafraCutPro_v1.2.0_Setup.exe",
     "release_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases",
-    "changelog_ar": "• حل مشكلة النسخ واللصق بالكامل داخل البرنامج وبين جداول القطع والاستوك\n• توفير برنامج التثبيت الموحد الاحترافي Setup Wizard بضغطة زر واحدة\n• دعم نسخ النتائج من جدول Results إلى الإكسيل بـ Ctrl+C\n• تبسيط مركز التحديثات إلى زر واحد ذكي وسريع\n• تحسينات شاملة في الأداء وتقليل استهلاك الرامات",
-    "changelog_en": "• Fixed copy and paste inside the program and between tables\n• Professional one-file Setup Wizard installer\n• Direct Ctrl+C copy from Results table to Excel\n• Single-click streamlined update center\n• High performance and minimal RAM consumption",
-    "file_size_mb": 100.4,
+    "changelog_ar": "• إزالة أزرار Fit و Expand من شريطي القطع والاستوك لتبسيط الواجهة\n• ضبط وتوسيع لوحة النتائج وإصلاح سلاسة وسرعة تحريك الفاصل (Splitter)\n• إخفاء تبويبات النتائج حتى بدء عملية النستنج Start Optimization\n• فصل مركز التحديثات في نافذة مخصصة بدلاً من الظهور الدائم في التبويبات\n• إضافة ميزة حفظ المشروع بالكامل كملف (Save Project As...)\n• احتفاظ البرنامج بآخر استوك تم العمل عليه تلقائياً وبدء القطع نظيفة",
+    "changelog_en": "• Removed Fit and Expand buttons from Pieces and Stock toolbars\n• Smooth horizontal splitter movement and expanded results pane\n• Results tabs remain hidden until optimization starts\n• Dedicated Update dialog window instead of persistent tab\n• Full project file Save As / Open support (.wcp)\n• Automatically persists last stock inventory across sessions and keeps pieces empty on startup",
+    "file_size_mb": 70.0,
     "mandatory": false
 }

@@ -98,13 +98,18 @@ class MainWindow(QMainWindow):
 
         act_open = QAction("Open Project...", self)
         act_open.setShortcut("Ctrl+O")
-        act_open.triggered.connect(self.cutting_view._open_project)
+        act_open.triggered.connect(lambda: self.cutting_view.open_project_from_file(None))
         menu_file.addAction(act_open)
 
         act_save = QAction("Save Project", self)
         act_save.setShortcut("Ctrl+S")
         act_save.triggered.connect(self.cutting_view._save_project)
         menu_file.addAction(act_save)
+
+        act_save_as = QAction("Save Project As...", self)
+        act_save_as.setShortcut("Ctrl+Shift+S")
+        act_save_as.triggered.connect(self.cutting_view._save_project_as)
+        menu_file.addAction(act_save_as)
 
         menu_file.addSeparator()
 
@@ -226,11 +231,8 @@ class MainWindow(QMainWindow):
         menubar.setCornerWidget(self.btn_update_corner, Qt.Corner.TopRightCorner)
 
     def _open_update_dialog(self):
-        if hasattr(self, 'cutting_view') and hasattr(self.cutting_view, 'res_tabs'):
-            self.cutting_view.res_tabs.setCurrentIndex(3)
-        else:
-            dlg = UpdateDialog(self.update_manager, preloaded_info=self.latest_update_info, parent=self)
-            dlg.exec()
+        dlg = UpdateDialog(self.update_manager, preloaded_info=self.latest_update_info, parent=self)
+        dlg.exec()
 
     def _on_update_detected(self, info: UpdateInfo):
         self.latest_update_info = info
@@ -274,12 +276,14 @@ class MainWindow(QMainWindow):
     def _on_new_project(self):
         res = QMessageBox.question(
             self, "New Project",
-            "Clear current pieces and stock to start a new project?",
+            "Clear current pieces to start a new project? (Stock inventory will be preserved)",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         if res == QMessageBox.StandardButton.Yes:
-            self.cutting_view._clear_pieces()
-            self.cutting_view._clear_stock()
+            self.cutting_view.pieces_table.setRowCount(0)
+            self.cutting_view._reset_results_view()
+            self.cutting_view.current_project_file = None
+            self.status_bar.showMessage("New project started — Pieces cleared, Stock preserved.", 4000)
 
     def _show_about(self):
         QMessageBox.about(
@@ -306,7 +310,5 @@ class MainWindow(QMainWindow):
             )
             self.project_repo.create(default_proj)
             self.active_project_id = default_proj.id
-            self.cutting_view.load_project_data(default_proj.id)
         else:
             self.active_project_id = projects[0].id
-            self.cutting_view.load_project_data(projects[0].id)

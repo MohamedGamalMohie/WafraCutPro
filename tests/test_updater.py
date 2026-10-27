@@ -79,16 +79,11 @@ def test_update_center_widget_ui(qapp):
 
 
 def test_cutting_view_update_tab_integration(qapp):
+    from steel_nest.ui.widgets.update_dialog import UpdateDialog
     view = CuttingOptimizationView()
-    # Check that the 4th tab is Update
-    assert view.res_tabs.count() == 4
-    assert "Update" in view.res_tabs.tabText(3)
-
-    # Switch to update tab
-    view.res_tabs.setCurrentIndex(3)
-    assert view.right_stack.currentIndex() == 3
-
-    # Simulate update notification signal
-    info = UpdateInfo(version="1.2.0", download_url="http://x.com", has_update=True)
-    view._on_update_detected_in_view(info)
-    assert "v1.2.0" in view.res_tabs.tabText(3)
+    # Check that Update is not cluttering results tabs (only 3 results tabs: 2D, 1D, Statistics)
+    assert view.res_tabs.count() == 3
+    # Check that UpdateDialog can be cleanly instantiated
+    dlg = UpdateDialog(view.update_manager)
+    assert dlg is not None
+    assert "WafraCut Pro" in dlg.windowTitle()
