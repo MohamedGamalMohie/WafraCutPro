@@ -2,7 +2,7 @@
 ; Architected and Built for Eng. Mohamed Gamal Mohie
 
 #define MyAppName "WafraCut Pro"
-#define MyAppVersion "1.2.0"
+#define MyAppVersion "1.2.1"
 #define MyAppPublisher "Eng. Mohamed Gamal Mohie"
 #define MyAppURL "https://github.com/MohamedGamalMohie/WafraCutPro"
 #define MyAppExeName "WafraCutPro.exe"
@@ -18,7 +18,7 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=C:\Users\Mohamed\Desktop
-OutputBaseFilename=WafraCutPro_v1.2.0_Setup
+OutputBaseFilename=WafraCutPro_v1.2.1_Setup
 SetupIconFile=resources\icon.ico
 Compression=lzma2/ultra64
 SolidCompression=yes

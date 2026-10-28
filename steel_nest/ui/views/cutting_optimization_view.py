@@ -343,14 +343,14 @@ class CuttingOptimizationView(QWidget):
         pw_layout.setContentsMargins(4, 4, 4, 4)
         pw_layout.setSpacing(4)
 
-        # PIECES Toolbar
-        p_toolbar = QHBoxLayout()
-        p_toolbar.setSpacing(3)
+        # PIECES Toolbar - 2 Organized Rows for Clear & Readable Labels
+        p_toolbar_1 = QHBoxLayout()
+        p_toolbar_1.setSpacing(4)
 
         lbl_pieces_badge = QLabel(" PIECES ")
         lbl_pieces_badge.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         lbl_pieces_badge.setStyleSheet("background-color: #2563EB; color: white; padding: 3px 6px; border-radius: 3px;")
-        p_toolbar.addWidget(lbl_pieces_badge)
+        p_toolbar_1.addWidget(lbl_pieces_badge)
 
         btn_style_compact = "QPushButton { padding: 4px 6px; font-size: 11px; }"
 
@@ -359,65 +359,70 @@ class CuttingOptimizationView(QWidget):
         btn_p_append.setIcon(IconManager.get_icon("append", 14))
         btn_p_append.setToolTip("Add new required piece row")
         btn_p_append.clicked.connect(self._add_piece_row)
-        p_toolbar.addWidget(btn_p_append)
+        p_toolbar_1.addWidget(btn_p_append)
 
         btn_p_delete = QPushButton("Delete")
         btn_p_delete.setStyleSheet(btn_style_compact)
         btn_p_delete.setIcon(IconManager.get_icon("delete", 14))
         btn_p_delete.setToolTip("Delete selected piece row")
         btn_p_delete.clicked.connect(self._delete_piece_row)
-        p_toolbar.addWidget(btn_p_delete)
-
-        btn_p_paste = QPushButton("Paste")
-        btn_p_paste.setStyleSheet(btn_style_compact)
-        btn_p_paste.setIcon(IconManager.get_icon("paste", 14))
-        btn_p_paste.setToolTip("Paste copied table columns from Excel (Ctrl+V)")
-        btn_p_paste.clicked.connect(lambda: self._handle_clipboard_paste(self.pieces_table, is_stock=False))
-        p_toolbar.addWidget(btn_p_paste)
-
-        btn_p_open = QPushButton("Open")
-        btn_p_open.setStyleSheet(btn_style_compact)
-        btn_p_open.setIcon(IconManager.get_icon("open", 14))
-        btn_p_open.setToolTip("Open / Load saved project file (*.wcp)")
-        btn_p_open.clicked.connect(lambda: self.open_project_from_file(None))
-        p_toolbar.addWidget(btn_p_open)
-
-        btn_p_save = QPushButton("Save")
-        btn_p_save.setStyleSheet(btn_style_compact)
-        btn_p_save.setIcon(IconManager.get_icon("save", 14))
-        btn_p_save.setToolTip("Save project file (*.wcp)")
-        btn_p_save.clicked.connect(self._save_project)
-        p_toolbar.addWidget(btn_p_save)
-
-        btn_p_import = QPushButton("Import")
-        btn_p_import.setStyleSheet(btn_style_compact)
-        btn_p_import.setIcon(IconManager.get_icon("excel", 14))
-        btn_p_import.setToolTip("Import pieces from Excel / CSV")
-        btn_p_import.clicked.connect(self._import_excel)
-        p_toolbar.addWidget(btn_p_import)
+        p_toolbar_1.addWidget(btn_p_delete)
 
         btn_p_clear = QPushButton("Clear")
         btn_p_clear.setStyleSheet(btn_style_compact)
         btn_p_clear.setIcon(IconManager.get_icon("clear", 14))
         btn_p_clear.setToolTip("Clear all pieces")
         btn_p_clear.clicked.connect(self._clear_pieces)
-        p_toolbar.addWidget(btn_p_clear)
+        p_toolbar_1.addWidget(btn_p_clear)
 
         btn_p_sort = QPushButton("Sort")
         btn_p_sort.setStyleSheet(btn_style_compact)
         btn_p_sort.setIcon(IconManager.get_icon("sort", 14))
         btn_p_sort.setToolTip("Sort pieces by length, width, quantity, or material")
         btn_p_sort.clicked.connect(self._sort_pieces)
-        p_toolbar.addWidget(btn_p_sort)
+        p_toolbar_1.addWidget(btn_p_sort)
+        p_toolbar_1.addStretch()
+        pw_layout.addLayout(p_toolbar_1)
+
+        # Row 2: Secondary actions (Paste, Import, Open, Save, More)
+        p_toolbar_2 = QHBoxLayout()
+        p_toolbar_2.setSpacing(4)
+
+        btn_p_paste = QPushButton("Paste")
+        btn_p_paste.setStyleSheet(btn_style_compact)
+        btn_p_paste.setIcon(IconManager.get_icon("paste", 14))
+        btn_p_paste.setToolTip("Paste copied table columns from Excel (Ctrl+V)")
+        btn_p_paste.clicked.connect(lambda: self._handle_clipboard_paste(self.pieces_table, is_stock=False))
+        p_toolbar_2.addWidget(btn_p_paste)
+
+        btn_p_import = QPushButton("Import")
+        btn_p_import.setStyleSheet(btn_style_compact)
+        btn_p_import.setIcon(IconManager.get_icon("excel", 14))
+        btn_p_import.setToolTip("Import pieces from Excel / CSV")
+        btn_p_import.clicked.connect(self._import_excel)
+        p_toolbar_2.addWidget(btn_p_import)
+
+        btn_p_open = QPushButton("Open")
+        btn_p_open.setStyleSheet(btn_style_compact)
+        btn_p_open.setIcon(IconManager.get_icon("open", 14))
+        btn_p_open.setToolTip("Open / Load saved project file (*.wcp)")
+        btn_p_open.clicked.connect(lambda: self.open_project_from_file(None))
+        p_toolbar_2.addWidget(btn_p_open)
+
+        btn_p_save = QPushButton("Save")
+        btn_p_save.setStyleSheet(btn_style_compact)
+        btn_p_save.setIcon(IconManager.get_icon("save", 14))
+        btn_p_save.setToolTip("Save project file (*.wcp)")
+        btn_p_save.clicked.connect(self._save_project)
+        p_toolbar_2.addWidget(btn_p_save)
 
         btn_p_more = QPushButton("More...")
         btn_p_more.setStyleSheet(btn_style_compact)
         btn_p_more.setToolTip("More options & templates")
         btn_p_more.clicked.connect(self._show_pieces_menu)
-        p_toolbar.addWidget(btn_p_more)
-
-        p_toolbar.addStretch()
-        pw_layout.addLayout(p_toolbar)
+        p_toolbar_2.addWidget(btn_p_more)
+        p_toolbar_2.addStretch()
+        pw_layout.addLayout(p_toolbar_2)
 
         # Columns selector filter row
         p_cols_row = QHBoxLayout()
@@ -448,12 +453,12 @@ class CuttingOptimizationView(QWidget):
             "#", "Length ▲", "Width", "Quantity", "Material", "Rotation", "Label"
         ])
         self.pieces_table.verticalHeader().setVisible(False)
-        self.pieces_table.setColumnWidth(0, 42)
-        self.pieces_table.setColumnWidth(1, 75)
-        self.pieces_table.setColumnWidth(2, 70)
-        self.pieces_table.setColumnWidth(3, 65)
-        self.pieces_table.setColumnWidth(4, 85)
-        self.pieces_table.setColumnWidth(5, 65)
+        self.pieces_table.setColumnWidth(0, 36)
+        self.pieces_table.setColumnWidth(1, 68)
+        self.pieces_table.setColumnWidth(2, 58)
+        self.pieces_table.setColumnWidth(3, 54)
+        self.pieces_table.setColumnWidth(4, 78)
+        self.pieces_table.setColumnWidth(5, 58)
         self.pieces_table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
         self.pieces_table.setStyleSheet("""
             QTableWidget {
@@ -493,71 +498,76 @@ class CuttingOptimizationView(QWidget):
         sw_layout.setContentsMargins(4, 4, 4, 4)
         sw_layout.setSpacing(4)
 
-        # STOCK Toolbar
-        s_toolbar = QHBoxLayout()
-        s_toolbar.setSpacing(3)
+        # STOCK Toolbar - 2 Organized Rows for Clear & Readable Labels
+        s_toolbar_1 = QHBoxLayout()
+        s_toolbar_1.setSpacing(4)
 
         lbl_stock_badge = QLabel(" STOCK ")
         lbl_stock_badge.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         lbl_stock_badge.setStyleSheet("background-color: #15803D; color: white; padding: 3px 6px; border-radius: 3px;")
-        s_toolbar.addWidget(lbl_stock_badge)
+        s_toolbar_1.addWidget(lbl_stock_badge)
 
         btn_s_append = QPushButton("+ Append")
         btn_s_append.setStyleSheet(btn_style_compact)
         btn_s_append.setIcon(IconManager.get_icon("append", 14))
         btn_s_append.setToolTip("Add new raw stock bar/plate")
         btn_s_append.clicked.connect(self._add_stock_row)
-        s_toolbar.addWidget(btn_s_append)
+        s_toolbar_1.addWidget(btn_s_append)
 
         btn_s_delete = QPushButton("Delete")
         btn_s_delete.setStyleSheet(btn_style_compact)
         btn_s_delete.setIcon(IconManager.get_icon("delete", 14))
         btn_s_delete.setToolTip("Delete selected stock row")
         btn_s_delete.clicked.connect(self._delete_stock_row)
-        s_toolbar.addWidget(btn_s_delete)
-
-        btn_s_paste = QPushButton("Paste")
-        btn_s_paste.setStyleSheet(btn_style_compact)
-        btn_s_paste.setIcon(IconManager.get_icon("paste", 14))
-        btn_s_paste.setToolTip("Paste copied table columns from Excel (Ctrl+V)")
-        btn_s_paste.clicked.connect(lambda: self._handle_clipboard_paste(self.stock_table, is_stock=True))
-        s_toolbar.addWidget(btn_s_paste)
-
-        btn_s_import = QPushButton("Import")
-        btn_s_import.setStyleSheet(btn_style_compact)
-        btn_s_import.setIcon(IconManager.get_icon("excel", 14))
-        btn_s_import.setToolTip("Import stock from Excel / CSV")
-        btn_s_import.clicked.connect(self._import_stock_excel)
-        s_toolbar.addWidget(btn_s_import)
-
-        btn_s_presets = QPushButton("Presets")
-        btn_s_presets.setStyleSheet(btn_style_compact)
-        btn_s_presets.setIcon(IconManager.get_icon("settings", 14))
-        btn_s_presets.setToolTip("Quick add 12m, 6m, or 2x6m plate")
-        btn_s_presets.clicked.connect(self._show_presets_menu)
-        s_toolbar.addWidget(btn_s_presets)
+        s_toolbar_1.addWidget(btn_s_delete)
 
         btn_s_clear = QPushButton("Clear")
         btn_s_clear.setStyleSheet(btn_style_compact)
         btn_s_clear.setIcon(IconManager.get_icon("clear", 14))
         btn_s_clear.setToolTip("Clear all stock")
         btn_s_clear.clicked.connect(self._clear_stock)
-        s_toolbar.addWidget(btn_s_clear)
+        s_toolbar_1.addWidget(btn_s_clear)
 
         btn_s_sort = QPushButton("Sort")
         btn_s_sort.setStyleSheet(btn_style_compact)
         btn_s_sort.setIcon(IconManager.get_icon("sort", 14))
         btn_s_sort.setToolTip("Sort stock by length, width, quantity, or material")
         btn_s_sort.clicked.connect(self._sort_stock)
-        s_toolbar.addWidget(btn_s_sort)
+        s_toolbar_1.addWidget(btn_s_sort)
+        s_toolbar_1.addStretch()
+        sw_layout.addLayout(s_toolbar_1)
+
+        # Row 2: Secondary actions (Paste, Import, Presets, More)
+        s_toolbar_2 = QHBoxLayout()
+        s_toolbar_2.setSpacing(4)
+
+        btn_s_paste = QPushButton("Paste")
+        btn_s_paste.setStyleSheet(btn_style_compact)
+        btn_s_paste.setIcon(IconManager.get_icon("paste", 14))
+        btn_s_paste.setToolTip("Paste copied table columns from Excel (Ctrl+V)")
+        btn_s_paste.clicked.connect(lambda: self._handle_clipboard_paste(self.stock_table, is_stock=True))
+        s_toolbar_2.addWidget(btn_s_paste)
+
+        btn_s_import = QPushButton("Import")
+        btn_s_import.setStyleSheet(btn_style_compact)
+        btn_s_import.setIcon(IconManager.get_icon("excel", 14))
+        btn_s_import.setToolTip("Import stock from Excel / CSV")
+        btn_s_import.clicked.connect(self._import_stock_excel)
+        s_toolbar_2.addWidget(btn_s_import)
+
+        btn_s_presets = QPushButton("Presets")
+        btn_s_presets.setStyleSheet(btn_style_compact)
+        btn_s_presets.setIcon(IconManager.get_icon("settings", 14))
+        btn_s_presets.setToolTip("Quick add 12m, 6m, or 2x6m plate")
+        btn_s_presets.clicked.connect(self._show_presets_menu)
+        s_toolbar_2.addWidget(btn_s_presets)
 
         btn_s_more = QPushButton("More...")
         btn_s_more.setStyleSheet(btn_style_compact)
         btn_s_more.clicked.connect(self._show_stock_menu)
-        s_toolbar.addWidget(btn_s_more)
-
-        s_toolbar.addStretch()
-        sw_layout.addLayout(s_toolbar)
+        s_toolbar_2.addWidget(btn_s_more)
+        s_toolbar_2.addStretch()
+        sw_layout.addLayout(s_toolbar_2)
 
         # Columns selector filter row for stock
         s_cols_row = QHBoxLayout()
@@ -584,12 +594,12 @@ class CuttingOptimizationView(QWidget):
             "#", "Length ▲", "Width", "Quantity", "Material", "Label", "Price"
         ])
         self.stock_table.verticalHeader().setVisible(False)
-        self.stock_table.setColumnWidth(0, 42)
-        self.stock_table.setColumnWidth(1, 75)
-        self.stock_table.setColumnWidth(2, 70)
-        self.stock_table.setColumnWidth(3, 65)
-        self.stock_table.setColumnWidth(4, 85)
-        self.stock_table.setColumnWidth(5, 75)
+        self.stock_table.setColumnWidth(0, 36)
+        self.stock_table.setColumnWidth(1, 68)
+        self.stock_table.setColumnWidth(2, 58)
+        self.stock_table.setColumnWidth(3, 54)
+        self.stock_table.setColumnWidth(4, 78)
+        self.stock_table.setColumnWidth(5, 68)
         self.stock_table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
         self.stock_table.setStyleSheet("""
             QTableWidget {
@@ -925,8 +935,8 @@ class CuttingOptimizationView(QWidget):
         right_layout.addWidget(self.right_status_frame)
         self.h_splitter.addWidget(right_container)
 
-        # Shift splitter to the left (left inputs: 440px, right results: 960px)
-        self.h_splitter.setSizes([440, 960])
+        # Set comfortable initial split (left inputs: 455px, right results: 945px)
+        self.h_splitter.setSizes([455, 945])
         handle = self.h_splitter.handle(1)
         if handle:
             handle.setCursor(QCursor(Qt.CursorShape.SplitHCursor))
@@ -1479,9 +1489,14 @@ class CuttingOptimizationView(QWidget):
             project_id=self.active_project_id or "PRJ-CURRENT",
             parent=self
         )
+        self.worker.progress.connect(self._on_optimization_progress)
         self.worker.finished.connect(self._on_optimization_done)
         self.worker.error.connect(self._on_optimization_error)
         self.worker.start()
+
+    def _on_optimization_progress(self, percent: int, msg: str):
+        self.btn_start.setText(f"⏳ {percent}%...")
+        self.lbl_status_main.setText(f"{percent}%: {msg}")
 
     def _on_optimization_done(self, result: OptimizationResult):
         self.btn_start.setEnabled(True)
@@ -1830,8 +1845,10 @@ class CuttingOptimizationView(QWidget):
                 self.pattern_tabs.addTab(f"#{i + 1}")
         elif active_tab == 1: # 1D
             plans = self.current_result.linear_plans
-            for i in range(len(plans)):
-                self.pattern_tabs.addTab(f"#{i + 1}")
+            for i, p in enumerate(plans):
+                rep = getattr(p, 'repetition_count', getattr(p, 'repetitions', 1))
+                tab_title = f"#{i + 1} (x{rep})" if rep > 1 else f"#{i + 1}"
+                self.pattern_tabs.addTab(tab_title)
         else: # Statistics
             self.pattern_tabs.addTab("Summary")
 
@@ -1851,18 +1868,20 @@ class CuttingOptimizationView(QWidget):
         if active_tab == 0: # 2D Plate
             if tab_idx < len(self.current_result.plate_plans):
                 plan = self.current_result.plate_plans[tab_idx]
+                rep = getattr(plan, 'repetition_count', getattr(plan, 'repetitions', 1))
                 self.canvas.set_2d_plan(plan)
                 self.lbl_status_util.setText(f"Utilization: {plan.utilization_pct:.2f} %")
                 self.lbl_status_scrap.setText(f"Scrap: {100.0 - plan.utilization_pct:.2f} %")
-                self.lbl_status_qty.setText(f"Quantity: {getattr(plan, 'repetitions', 1)}")
+                self.lbl_status_qty.setText(f"Quantity: {rep}")
                 self.lbl_status_coords.setText(f"({plan.plate_length:.0f}, {plan.plate_width:.0f})")
         elif active_tab == 1: # 1D Bar
             if tab_idx < len(self.current_result.linear_plans):
                 plan = self.current_result.linear_plans[tab_idx]
+                rep = getattr(plan, 'repetition_count', getattr(plan, 'repetitions', 1))
                 self.canvas.set_1d_plan(plan)
                 self.lbl_status_util.setText(f"Utilization: {plan.utilization_pct:.2f} %")
                 self.lbl_status_scrap.setText(f"Scrap: {plan.waste_pct:.2f} %")
-                self.lbl_status_qty.setText(f"Quantity: {getattr(plan, 'repetitions', 1)}")
+                self.lbl_status_qty.setText(f"Quantity: {rep}")
                 self.lbl_status_coords.setText(f"({plan.stock_length:.0f}, 0)")
 
         # Sync table selection if in text mode

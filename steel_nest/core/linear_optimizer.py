@@ -27,7 +27,8 @@ class LinearOptimizer:
         trim_end_mm: float = 15.0,
         min_remnant_length_mm: float = 500.0,
         time_limit_sec: int = 30,
-        allow_remnants_use: bool = True
+        allow_remnants_use: bool = True,
+        group_identical_layouts: bool = True
     ):
         self.mode = mode
         self.objective = objective
@@ -38,6 +39,41 @@ class LinearOptimizer:
         self.min_remnant = max(0.0, min_remnant_length_mm)
         self.time_limit_sec = max(1, time_limit_sec)
         self.allow_remnants_use = allow_remnants_use
+        self.group_identical = group_identical_layouts
+
+    @staticmethod
+    def _group_similar_linear_plans(plans: List[LinearBarPlan]) -> List[LinearBarPlan]:
+        """
+        Groups identical linear cutting patterns into a single plan with repetition_count.
+        Greatly accelerates GUI rendering, tab generation, and memory efficiency.
+        """
+        if not plans:
+            return []
+
+        grouped: List[LinearBarPlan] = []
+        for plan in plans:
+            matched = False
+            plan_cuts = tuple(round(s.length, 1) for s in plan.segments)
+            for g in grouped:
+                g_cuts = tuple(round(s.length, 1) for s in g.segments)
+                if (
+                    round(g.stock_length, 1) == round(plan.stock_length, 1)
+                    and g.designation == plan.designation
+                    and g.grade == plan.grade
+                    and g.stock_id == plan.stock_id
+                    and g.is_remnant_stock == plan.is_remnant_stock
+                    and g_cuts == plan_cuts
+                ):
+                    g.repetition_count += getattr(plan, 'repetition_count', 1)
+                    matched = True
+                    break
+            if not matched:
+                grouped.append(plan)
+
+        for idx, p in enumerate(grouped):
+            p.bar_index = idx + 1
+
+        return grouped
 
     def optimize(
         self,
@@ -118,28 +154,30 @@ class LinearOptimizer:
                 is_proven_optimal = False
                 overall_status = "FEASIBLE"
 
+        # Step 4: Group identical cutting patterns
+        if getattr(self, 'group_identical', True):
+            all_bar_plans = self._group_similar_linear_plans(all_bar_plans)
+
         exec_time = time.time() - start_time
 
-        # Calculate summary metrics
+        # Calculate summary metrics (accounting for repetition counts)
         total_parts_req = sum(p.quantity for p in parts)
-        total_parts_nested = sum(len(b.segments) for b in all_bar_plans)
-        total_material_len = sum(b.stock_length for b in all_bar_plans) / 1000.0
-        total_parts_len = sum(b.total_part_length for b in all_bar_plans) / 1000.0
+        total_parts_nested = sum(len(b.segments) * b.repetition_count for b in all_bar_plans)
+        total_material_len = sum(b.stock_length * b.repetition_count for b in all_bar_plans) / 1000.0
+        total_parts_len = sum(b.total_part_length * b.repetition_count for b in all_bar_plans) / 1000.0
         
         # Remnants & Waste
         reusable_remnants_len = 0.0
         unusable_waste_len = 0.0
-        total_cost = sum(b.unit_cost for b in all_bar_plans)
+        total_cost = sum(b.unit_cost * b.repetition_count for b in all_bar_plans)
 
         for b in all_bar_plans:
             rem = b.raw_remnant_length
             if rem >= self.min_remnant:
-                reusable_remnants_len += rem / 1000.0
-                # Trim and kerf are unusable waste
-                unusable_waste_len += (b.total_trim_length + b.total_kerf_length) / 1000.0
+                reusable_remnants_len += (rem * b.repetition_count) / 1000.0
+                unusable_waste_len += ((b.total_trim_length + b.total_kerf_length) * b.repetition_count) / 1000.0
             else:
-                # Remnant is too short to be reusable, count as waste
-                unusable_waste_len += (rem + b.total_trim_length + b.total_kerf_length) / 1000.0
+                unusable_waste_len += ((rem + b.total_trim_length + b.total_kerf_length) * b.repetition_count) / 1000.0
 
         overall_util = (total_parts_len / total_material_len * 100.0) if total_material_len > 0 else 0.0
         overall_waste = max(0.0, 100.0 - overall_util)
@@ -190,7 +228,7 @@ class LinearOptimizer:
 
         stock_pool = []
         for s in sorted(available_stock, key=lambda x: (x.is_remnant, x.length_mm)):
-            rem_qty = s.available_qty - s.used_qty
+            rem_qty = min(len(items), s.available_qty - s.used_qty)
             for _ in range(rem_qty):
                 stock_pool.append({
                     "id": s.id,
@@ -217,7 +255,7 @@ class LinearOptimizer:
 
             while items_for_len:
                 needed_single = cut_len + self.total_trim
-                max_avail = max([st["length"] for i, st in enumerate(stock_pool) if i not in used_pool_indices], default=default_stock_len)
+                max_avail = max([st["length"] for st in stock_pool], default=default_stock_len)
                 if needed_single > max_avail and needed_single > default_stock_len:
                     for it in items_for_len:
                         unassigned.append(UnassignedPart(
@@ -233,11 +271,18 @@ class LinearOptimizer:
                 best_idx = None
                 best_fit_count = 0
                 best_slack = float('inf')
+                best_len = None
+                tested_lengths = set()
 
                 for idx, st in enumerate(stock_pool):
                     if idx in used_pool_indices:
                         continue
-                    usable = st["length"] - self.total_trim
+                    st_len = st["length"]
+                    if st_len in tested_lengths:
+                        continue
+                    tested_lengths.add(st_len)
+
+                    usable = st_len - self.total_trim
                     if usable < cut_len:
                         continue
                     max_fit = int((usable + self.kerf) // (cut_len + self.kerf))
@@ -245,11 +290,17 @@ class LinearOptimizer:
                         continue
                     pack_n = min(len(items_for_len), max_fit)
                     used_len = pack_n * cut_len + (pack_n - 1) * self.kerf + self.total_trim
-                    slack = st["length"] - used_len
+                    slack = st_len - used_len
                     if slack >= 0 and slack < best_slack:
                         best_slack = slack
                         best_fit_count = pack_n
-                        best_idx = idx
+                        best_len = st_len
+
+                if best_len is not None:
+                    for idx, st in enumerate(stock_pool):
+                        if idx not in used_pool_indices and st["length"] == best_len:
+                            best_idx = idx
+                            break
 
                 if best_idx is not None:
                     used_pool_indices.add(best_idx)
@@ -327,7 +378,7 @@ class LinearOptimizer:
 
         stock_pool = []
         for s in sorted(available_stock, key=lambda x: (x.is_remnant, x.length_mm)):
-            rem_qty = s.available_qty - s.used_qty
+            rem_qty = min(len(items), s.available_qty - s.used_qty)
             for _ in range(rem_qty):
                 stock_pool.append({
                     "id": s.id,
@@ -371,13 +422,21 @@ class LinearOptimizer:
             best_choice = None
             min_slack = float('inf')
 
-            candidate_bars = [(idx, st) for idx, st in enumerate(stock_pool) if idx not in used_pool_indices]
-            if not candidate_bars:
-                candidate_bars = [(None, {"length": default_stock_len, "id": f"NEW-STOCK-{sample_desig}-{default_stock_len:.0f}", "cost": 0.0, "is_remnant": False})]
+            # Test unique bar configurations to avoid redundant combinatorial evaluations
+            tested_bar_keys = set()
+            candidate_bars = []
+            for idx, st in enumerate(stock_pool):
+                if idx in used_pool_indices:
+                    continue
+                b_key = (st["length"], st["is_remnant"])
+                if b_key not in tested_bar_keys:
+                    tested_bar_keys.add(b_key)
+                    candidate_bars.append((st["length"], st["is_remnant"]))
 
-            for bar_tuple in candidate_bars:
-                st_idx, st_data = bar_tuple
-                bar_len = st_data["length"]
+            if not candidate_bars:
+                candidate_bars = [(default_stock_len, False)]
+
+            for bar_len, is_rem in candidate_bars:
                 usable = bar_len - self.total_trim
                 if usable < L1:
                     continue
@@ -393,7 +452,7 @@ class LinearOptimizer:
                     slack_a = bar_len - (used_by_L1 + self.total_trim)
                     if slack_a >= 0 and slack_a < min_slack:
                         min_slack = slack_a
-                        best_choice = (st_idx, st_data, n1, None, 0)
+                        best_choice = (bar_len, is_rem, n1, None, 0)
                         if slack_a == 0:
                             break
 
@@ -414,22 +473,30 @@ class LinearOptimizer:
                                 slack_b = bar_len - tot_used
                                 if slack_b >= 0 and slack_b < min_slack:
                                     min_slack = slack_b
-                                    best_choice = (st_idx, st_data, n1, L2, max_n2)
+                                    best_choice = (bar_len, is_rem, n1, L2, max_n2)
                                     if slack_b == 0:
                                         break
                 if min_slack == 0:
                     break
 
             if best_choice is None:
-                st_idx = None
-                st_data = {"length": default_stock_len, "id": f"NEW-STOCK-{sample_desig}-{default_stock_len:.0f}", "cost": 0.0, "is_remnant": False}
+                bar_len = default_stock_len
+                is_rem = False
                 usable = default_stock_len - self.total_trim
                 max_n1 = min(len(L1_items), int((usable + self.kerf) // (L1 + self.kerf)))
                 if max_n1 <= 0:
                     max_n1 = 1
-                best_choice = (st_idx, st_data, max_n1, None, 0)
+                best_choice = (bar_len, is_rem, max_n1, None, 0)
 
-            st_idx, st_data, chosen_n1, chosen_L2, chosen_n2 = best_choice
+            chosen_len, chosen_rem, chosen_n1, chosen_L2, chosen_n2 = best_choice
+
+            st_idx = None
+            st_data = None
+            for idx, st in enumerate(stock_pool):
+                if idx not in used_pool_indices and st["length"] == chosen_len and st["is_remnant"] == chosen_rem:
+                    st_idx = idx
+                    st_data = st
+                    break
 
             if st_idx is not None:
                 used_pool_indices.add(st_idx)
@@ -503,7 +570,7 @@ class LinearOptimizer:
         """
         stock_pool = []
         for s in sorted(available_stock, key=lambda x: (x.is_remnant, x.length_mm)):
-            rem_qty = s.available_qty - s.used_qty
+            rem_qty = min(len(items), s.available_qty - s.used_qty)
             for _ in range(rem_qty):
                 stock_pool.append({
                     "id": s.id,
@@ -712,15 +779,28 @@ class LinearOptimizer:
                 # Open a new bar from stock pool or create shortage bar
                 best_pool_idx = None
                 best_pool_slack = float('inf')
+                best_pool_len = None
+                tested_pool_lengths = set()
 
                 for p_idx, st in enumerate(stock_pool):
                     if p_idx in used_pool_indices:
                         continue
-                    usable = st["length"] - self.total_trim
+                    st_len = st["length"]
+                    if st_len in tested_pool_lengths:
+                        continue
+                    tested_pool_lengths.add(st_len)
+
+                    usable = st_len - self.total_trim
                     slack = usable - req_len
                     if slack >= 0 and slack < best_pool_slack:
                         best_pool_slack = slack
-                        best_pool_idx = p_idx
+                        best_pool_len = st_len
+
+                if best_pool_len is not None:
+                    for p_idx, st in enumerate(stock_pool):
+                        if p_idx not in used_pool_indices and st["length"] == best_pool_len:
+                            best_pool_idx = p_idx
+                            break
 
                 if best_pool_idx is not None:
                     used_pool_indices.add(best_pool_idx)

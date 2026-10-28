@@ -245,27 +245,49 @@ class UpdateManager(QObject):
     @staticmethod
     def apply_update_and_restart(new_file_path: str):
         """
-        Creates a detached Windows batch script that waits for current process PID
-        to terminate, replaces the running executable, and launches the updated version.
+        Applies update and restarts application:
+        - If new_file_path is an installer (.exe), launches setup wizard directly via Windows Shell.
+        - If zip or binary, safely updates in background.
         """
-        current_exe = sys.executable
-        if not getattr(sys, "frozen", False):
-            # Running in dev mode (.py), simply inform
-            print(f"Dev mode update downloaded to: {new_file_path}")
-            return
+        try:
+            target_path = str(new_file_path).strip()
+            if not os.path.exists(target_path):
+                print(f"Update file not found: {target_path}")
+                return
 
-        pid = os.getpid()
-        bat_path = Path(os.environ.get("TEMP", ".")) / f"wafracut_update_{pid}.bat"
+            # If it's a Windows Setup Installer (.exe)
+            if target_path.lower().endswith(".exe"):
+                if sys.platform == "win32":
+                    try:
+                        os.startfile(target_path)
+                    except Exception:
+                        subprocess.Popen([target_path], shell=True)
+                else:
+                    subprocess.Popen([target_path])
 
-        app_dir = os.path.dirname(current_exe)
-        is_zip = str(new_file_path).lower().endswith(".zip")
-        if is_zip:
-            replace_cmd = f'tar -xf "{new_file_path}" -C "{app_dir}" >nul 2>&1 || powershell -command "Expand-Archive -Force \'{new_file_path}\' \'{app_dir}\'"'
-        else:
-            replace_cmd = f'copy /Y "{new_file_path}" "{current_exe}" >nul'
+                # Gracefully close running application
+                from PyQt6.QtWidgets import QApplication
+                app = QApplication.instance()
+                if app:
+                    app.quit()
+                sys.exit(0)
 
-        # Batch script that loops until old PID dies, then replaces and starts exe
-        bat_script = f"""@echo off
+            # For ZIP archive or direct file replacement
+            current_exe = sys.executable
+            if not getattr(sys, "frozen", False):
+                print(f"Dev mode update downloaded to: {target_path}")
+                return
+
+            pid = os.getpid()
+            bat_path = Path(os.environ.get("TEMP", ".")) / f"wafracut_update_{pid}.bat"
+            app_dir = os.path.dirname(current_exe)
+            is_zip = target_path.lower().endswith(".zip")
+            if is_zip:
+                replace_cmd = f'powershell -command "Expand-Archive -Force \'{target_path}\' \'{app_dir}\'"'
+            else:
+                replace_cmd = f'copy /Y "{target_path}" "{current_exe}" >nul'
+
+            bat_script = f"""@echo off
 setlocal
 echo Updating WafraCut Pro...
 :wait_loop
@@ -276,23 +298,30 @@ if not errorlevel 1 (
 )
 
 {replace_cmd}
-if errorlevel 1 (
-    echo Update failed to overwrite executable.
-    pause
-    exit /b 1
-)
-
 start "" "{current_exe}"
-del "{new_file_path}" >nul 2>&1
+del "{target_path}" >nul 2>&1
 (goto) 2>nul & del "%~f0"
 """
-        with open(bat_path, "w", encoding="ansi") as f:
-            f.write(bat_script)
+            with open(bat_path, "w", encoding="ansi") as f:
+                f.write(bat_script)
 
-        # Launch detached updater script and terminate current process
-        subprocess.Popen(
-            ["cmd.exe", "/c", str(bat_path)],
-            creationflags=subprocess.CREATE_NEW_CONSOLE | subprocess.DETACHED_PROCESS,
-            close_fds=True
-        )
-        sys.exit(0)
+            creationflags = 0
+            if sys.platform == "win32":
+                creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
+
+            subprocess.Popen(
+                ["cmd.exe", "/c", str(bat_path)],
+                creationflags=creationflags
+            )
+            from PyQt6.QtWidgets import QApplication
+            app = QApplication.instance()
+            if app:
+                app.quit()
+            sys.exit(0)
+        except Exception as e:
+            try:
+                if sys.platform == "win32":
+                    os.startfile(os.path.dirname(str(new_file_path)))
+            except Exception:
+                pass
+            raise e

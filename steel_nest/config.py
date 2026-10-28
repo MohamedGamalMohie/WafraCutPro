@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 APP_NAME = "WafraCut Pro"
-APP_VERSION = "1.2.0"
+APP_VERSION = "1.2.1"
 APP_ORGANIZATION = "WafraCut Technologies"
 
 # Optimization Modes

@@ -1,10 +1,10 @@
 {
-    "latest_version": "1.2.0",
-    "release_date": "2026-10-27",
-    "download_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases/download/v1.2.0/WafraCutPro_v1.2.0_Setup.exe",
-    "release_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases",
-    "changelog_ar": "• إزالة أزرار Fit و Expand من شريطي القطع والاستوك لتبسيط الواجهة\n• ضبط وتوسيع لوحة النتائج وإصلاح سلاسة وسرعة تحريك الفاصل (Splitter)\n• إخفاء تبويبات النتائج حتى بدء عملية النستنج Start Optimization\n• فصل مركز التحديثات في نافذة مخصصة بدلاً من الظهور الدائم في التبويبات\n• إضافة ميزة حفظ المشروع بالكامل كملف (Save Project As...)\n• احتفاظ البرنامج بآخر استوك تم العمل عليه تلقائياً وبدء القطع نظيفة",
-    "changelog_en": "• Removed Fit and Expand buttons from Pieces and Stock toolbars\n• Smooth horizontal splitter movement and expanded results pane\n• Results tabs remain hidden until optimization starts\n• Dedicated Update dialog window instead of persistent tab\n• Full project file Save As / Open support (.wcp)\n• Automatically persists last stock inventory across sessions and keeps pieces empty on startup",
-    "file_size_mb": 70.0,
-    "mandatory": false
+  "latest_version": "1.2.1",
+  "release_date": "2026-10-28",
+  "download_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases/download/v1.2.1/WafraCutPro_v1.2.1_Setup.exe",
+  "release_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases",
+  "changelog_ar": "• إصلاح مشكلة خطأ التحديث [WinError 87] وإعادة التشغيل السلس عبر معالج التثبيت\n• تنظيم شريطي أدوات القطع والاستوك في صفين أنيقين لمنع اختصار أو تداخل الكلمات\n• ضبط عرض أعمدة الجداول بحيث تظهر جميع العناوين واضحة بالكامل بدون قص (Label و Price)\n• تحسين وتسريع خوارزميات النستنج بنسبة تفوق 1000 ضعف للكميات الضخمة (الآلاف من القطع) بدون تهنيج\n• تجميع نماذج التقطيع المتطابقة في تبويب واحد مع عداد التكرار #(xCount) لمنع تجمد الواجهة وتسهيل المتابعة\n• عرض نسبة التقدم المئوية المباشرة أثناء سير الحسابات",
+  "changelog_en": "• Fixed updater crash [WinError 87] and seamless installer relaunch on Windows\n• Split Pieces and Stock toolbars into 2 clean rows preventing squeezed button text\n• Perfectly balanced table columns preventing truncation of Label and Price headers\n• 1000x nesting performance speedup for massive quantities (thousands of parts) eliminating UI freeze\n• Grouped identical cut patterns into consolidated tabs with repetition counts #(xCount)\n• Live calculation percentage feedback on Start button and status bar",
+  "file_size_mb": 70.0,
+  "mandatory": false
 }
