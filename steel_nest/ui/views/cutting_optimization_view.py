@@ -22,7 +22,7 @@ from PyQt6.QtWidgets import (
     QStackedWidget, QSlider, QApplication, QGroupBox, QAbstractItemView,
     QLineEdit, QTextEdit
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QEvent
 from PyQt6.QtGui import QFont, QColor, QIcon, QAction, QPainter, QKeySequence, QShortcut, QCursor
 from PyQt6.QtPrintSupport import QPrinter, QPrintDialog
 
@@ -479,12 +479,6 @@ class CuttingOptimizationView(QWidget):
                 color: #991B1B;
             }
         """)
-        QShortcut(QKeySequence.StandardKey.Copy, self.pieces_table).activated.connect(
-            lambda: self._handle_clipboard_copy(self.pieces_table)
-        )
-        QShortcut(QKeySequence.StandardKey.Paste, self.pieces_table).activated.connect(
-            lambda: self._handle_clipboard_paste(self.pieces_table, is_stock=False)
-        )
         self.pieces_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.pieces_table.customContextMenuRequested.connect(
             lambda pos: self._show_table_context_menu(self.pieces_table, pos, is_stock=False)
@@ -620,12 +614,6 @@ class CuttingOptimizationView(QWidget):
                 color: #166534;
             }
         """)
-        QShortcut(QKeySequence.StandardKey.Copy, self.stock_table).activated.connect(
-            lambda: self._handle_clipboard_copy(self.stock_table)
-        )
-        QShortcut(QKeySequence.StandardKey.Paste, self.stock_table).activated.connect(
-            lambda: self._handle_clipboard_paste(self.stock_table, is_stock=True)
-        )
         self.stock_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.stock_table.customContextMenuRequested.connect(
             lambda pos: self._show_table_context_menu(self.stock_table, pos, is_stock=True)
@@ -888,9 +876,6 @@ class CuttingOptimizationView(QWidget):
         """)
         self.right_stack.addWidget(self.table_results_text)
         self.table_results_text.cellClicked.connect(self._on_results_text_row_clicked)
-        QShortcut(QKeySequence.StandardKey.Copy, self.table_results_text).activated.connect(
-            lambda: self._handle_clipboard_copy(self.table_results_text)
-        )
         self.table_results_text.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.table_results_text.customContextMenuRequested.connect(
             self._show_results_table_context_menu
@@ -947,6 +932,9 @@ class CuttingOptimizationView(QWidget):
         self.ctrl_frame.setVisible(False)
         self.pattern_tabs.setVisible(False)
         self.right_status_frame.setVisible(False)
+
+        # Install universal table keyboard event filters (Ctrl+C, Ctrl+V, Delete)
+        self._install_table_clipboard_filters()
 
     # -------------------------------------------------------------
     # Initial Data & Helpers
@@ -1496,7 +1484,6 @@ class CuttingOptimizationView(QWidget):
 
     def _on_optimization_progress(self, percent: int, msg: str):
         self.btn_start.setText(f"⏳ {percent}%...")
-        self.lbl_status_main.setText(f"{percent}%: {msg}")
 
     def _on_optimization_done(self, result: OptimizationResult):
         self.btn_start.setEnabled(True)
@@ -1959,27 +1946,120 @@ class CuttingOptimizationView(QWidget):
                     f"Successfully generated {len(parts)} component parts and added them to the Pieces cut list!"
                 )
 
+    def _install_table_clipboard_filters(self):
+        """Installs universal keyboard event filters on all tables for rock-solid Ctrl+C, Ctrl+V, and Delete."""
+        for table in (self.pieces_table, self.stock_table, self.table_results_text):
+            table.installEventFilter(self)
+            table.viewport().installEventFilter(self)
+
+    def _get_table_for_widget(self, w):
+        """Finds which table owns the event or currently focused widget."""
+        for t in (self.pieces_table, self.stock_table, self.table_results_text):
+            if w == t or w == t.viewport() or (w and w.parent() == t.viewport()):
+                return t
+        focus_w = QApplication.focusWidget()
+        for t in (self.pieces_table, self.stock_table, self.table_results_text):
+            if focus_w == t or focus_w == t.viewport() or (focus_w and focus_w.parent() == t.viewport()):
+                return t
+        return None
+
+    def eventFilter(self, watched, event):
+        """Universal event filter guaranteeing Ctrl+C, Ctrl+V, and Delete in all tables."""
+        if event.type() == QEvent.Type.KeyPress:
+            key = event.key()
+            mods = event.modifiers()
+
+            # Universal Copy (Ctrl+C / Ctrl+Insert)
+            is_copy = (mods == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_C) or \
+                      (mods == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Insert)
+            if is_copy:
+                table = self._get_table_for_widget(watched)
+                if table:
+                    focus_w = QApplication.focusWidget()
+                    if isinstance(focus_w, (QLineEdit, QTextEdit)) and focus_w.parent() == table.viewport() and focus_w.hasSelectedText():
+                        focus_w.copy()
+                    else:
+                        self._handle_clipboard_copy(table)
+                    return True
+
+            # Universal Paste (Ctrl+V / Shift+Insert)
+            is_paste = (mods == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_V) or \
+                       (mods == Qt.KeyboardModifier.ShiftModifier and key == Qt.Key.Key_Insert)
+            if is_paste:
+                table = self._get_table_for_widget(watched)
+                if table:
+                    is_stock = (table == self.stock_table)
+                    focus_w = QApplication.focusWidget()
+                    cb_text = QApplication.clipboard().text()
+                    # If clipboard contains tabular data (multiple lines or tab characters), always paste into table grid
+                    if "\t" in cb_text or "\n" in cb_text or "\r" in cb_text:
+                        self._handle_clipboard_paste(table, is_stock=is_stock)
+                        return True
+                    elif isinstance(focus_w, (QLineEdit, QTextEdit)) and focus_w.parent() == table.viewport():
+                        focus_w.paste()
+                        return True
+                    else:
+                        self._handle_clipboard_paste(table, is_stock=is_stock)
+                        return True
+
+            # Delete key on selected rows/cells
+            elif key == Qt.Key.Key_Delete and mods == Qt.KeyboardModifier.NoModifier:
+                table = self._get_table_for_widget(watched)
+                if table in (self.pieces_table, self.stock_table):
+                    focus_w = QApplication.focusWidget()
+                    if not isinstance(focus_w, (QLineEdit, QTextEdit)):
+                        self._handle_delete_key(table)
+                        return True
+
+        return super().eventFilter(watched, event)
+
+    def _handle_delete_key(self, table: QTableWidget):
+        """Clears selected cells or removes rows on Delete key."""
+        selected_ranges = table.selectedRanges()
+        if not selected_ranges:
+            curr_item = table.currentItem()
+            if curr_item and curr_item.column() > 0:
+                curr_item.setText("")
+            return
+
+        # Check if entire rows are selected
+        selected_rows = set()
+        for r in selected_ranges:
+            if r.leftColumn() == 0 and r.rightColumn() >= table.columnCount() - 1:
+                for row_idx in range(r.topRow(), r.bottomRow() + 1):
+                    selected_rows.add(row_idx)
+
+        if selected_rows and len(selected_rows) < table.rowCount():
+            for row_idx in sorted(selected_rows, reverse=True):
+                table.removeRow(row_idx)
+            self._reindex_table(table)
+        else:
+            for item in table.selectedItems():
+                if item.column() > 0:
+                    if item.flags() & Qt.ItemFlag.ItemIsUserCheckable and item.text() == "":
+                        item.setCheckState(Qt.CheckState.Unchecked)
+                    else:
+                        item.setText("")
+
     def _handle_clipboard_copy(self, table: QTableWidget):
         """Copies selected table cells/rows as clean tab-separated values to system clipboard (Ctrl+C)."""
         try:
-            focus_w = QApplication.focusWidget()
-            if isinstance(focus_w, (QLineEdit, QTextEdit)):
-                if hasattr(focus_w, 'hasSelectedText') and focus_w.hasSelectedText():
-                    focus_w.copy()
-                    return
-
-            selected_ranges = table.selectedRanges()
-            if not selected_ranges:
+            selected_items = table.selectedItems()
+            if not selected_items:
                 curr_item = table.currentItem()
                 if curr_item:
-                    val = "YES" if curr_item.checkState() == Qt.CheckState.Checked else ("NO" if curr_item.checkState() == Qt.CheckState.Unchecked and curr_item.text() == "" else curr_item.text())
+                    is_check_col = (curr_item.column() == 0 or (table == self.pieces_table and curr_item.column() == 5))
+                    val = ("YES" if curr_item.checkState() == Qt.CheckState.Checked else "NO") if is_check_col else curr_item.text()
                     QApplication.clipboard().setText(val)
                 return
 
-            min_r = min(r.topRow() for r in selected_ranges)
-            max_r = max(r.bottomRow() for r in selected_ranges)
-            min_c = min(r.leftColumn() for r in selected_ranges)
-            max_c = max(r.rightColumn() for r in selected_ranges)
+            rows = sorted(list(set(item.row() for item in selected_items)))
+            cols = sorted(list(set(item.column() for item in selected_items)))
+
+            min_r = min(rows)
+            max_r = max(rows)
+            min_c = min(cols)
+            max_c = max(cols)
 
             # When copying whole rows or ranges starting from column 0,
             # omit the '#' row counter column (col 0) unless ONLY column 0 was selected.
@@ -1987,14 +2067,15 @@ class CuttingOptimizationView(QWidget):
             data_start_c = 1 if omit_index else min_c
 
             lines = []
-            for r in range(min_r, max_r + 1):
+            for r in rows:
                 row_vals = []
                 for c in range(data_start_c, max_c + 1):
                     item = table.item(r, c)
                     if not item:
                         row_vals.append("")
                     else:
-                        if item.flags() & Qt.ItemFlag.ItemIsUserCheckable and item.text() == "":
+                        is_check_col = (c == 0 or (table == self.pieces_table and c == 5))
+                        if is_check_col:
                             row_vals.append("YES" if item.checkState() == Qt.CheckState.Checked else "NO")
                         else:
                             row_vals.append(item.text().strip())
@@ -2034,16 +2115,10 @@ class CuttingOptimizationView(QWidget):
 
         menu.exec(table.viewport().mapToGlobal(pos))
 
-    def _handle_clipboard_paste(self, table: QTableWidget, is_stock: bool = False):
+    def _handle_clipboard_paste(self, table: QTableWidget, is_stock: bool = False, text_override: Optional[str] = None):
         """Pastes clipboard tabular data into table cell-by-cell matching professional spreadsheet behavior."""
         try:
-            focus_w = QApplication.focusWidget()
-            if isinstance(focus_w, (QLineEdit, QTextEdit)):
-                focus_w.paste()
-                return
-
-            clipboard = QApplication.clipboard()
-            raw_text = clipboard.text()
+            raw_text = text_override if text_override is not None else QApplication.clipboard().text()
             if not raw_text or not raw_text.strip():
                 return
 
@@ -2074,19 +2149,18 @@ class CuttingOptimizationView(QWidget):
                 return
 
             # Determine target start row and column from selection or current cell
-            selected_ranges = table.selectedRanges()
+            selected_items = table.selectedItems()
             curr_r = table.currentRow()
             curr_c = table.currentColumn()
 
-            if selected_ranges:
-                sel_top = min(r.topRow() for r in selected_ranges)
-                sel_left = min(r.leftColumn() for r in selected_ranges)
-                sel_right = max(r.rightColumn() for r in selected_ranges)
-                start_r = sel_top
-                if sel_left == 0 and sel_right > 0 and len(data_matrix[0]) < table.columnCount():
+            if selected_items:
+                start_r = min(it.row() for it in selected_items)
+                sel_min_c = min(it.column() for it in selected_items)
+                sel_max_c = max(it.column() for it in selected_items)
+                if sel_min_c == 0 and sel_max_c > 0 and len(data_matrix[0]) < table.columnCount():
                     start_c = 1
                 else:
-                    start_c = sel_left
+                    start_c = sel_min_c
             elif curr_r >= 0 and curr_c >= 0:
                 start_r = curr_r
                 start_c = curr_c if curr_c > 0 else 1
@@ -2124,16 +2198,25 @@ class CuttingOptimizationView(QWidget):
                     idx_item.setCheckState(Qt.CheckState.Checked)
                     table.setItem(target_r, 0, idx_item)
 
-                # Check if pasting a full row between Pieces and Stock
-                is_full_row = (start_c == 1 and len(row_cells) >= 5)
-
-                if is_full_row and is_stock and len(row_cells) >= 6 and row_cells[4].upper() in ("YES", "NO", "TRUE", "FALSE"):
-                    stock_cells = [row_cells[0], row_cells[1], row_cells[2], row_cells[3], row_cells[5]]
-                    stock_cells.append(row_cells[6] if len(row_cells) > 6 else "0.0")
-                    row_cells = stock_cells
-                elif is_full_row and not is_stock and len(row_cells) >= 6 and not row_cells[4].upper() in ("YES", "NO", "TRUE", "FALSE"):
-                    piece_cells = [row_cells[0], row_cells[1], row_cells[2], row_cells[3], "YES", row_cells[4]]
-                    row_cells = piece_cells
+                # Column mapping logic for full-row paste (Length, Width, Qty, Material, ...)
+                if start_c == 1 and len(row_cells) >= 4:
+                    if not is_stock:
+                        # Pieces Table: [Length, Width, Qty, Material, Rotation, Label]
+                        if len(row_cells) == 4:
+                            row_cells = [row_cells[0], row_cells[1], row_cells[2], row_cells[3], "YES", ""]
+                        elif len(row_cells) == 5:
+                            if row_cells[4].upper() in ("YES", "NO", "TRUE", "FALSE", "1", "0"):
+                                row_cells = [row_cells[0], row_cells[1], row_cells[2], row_cells[3], row_cells[4], ""]
+                            else:
+                                row_cells = [row_cells[0], row_cells[1], row_cells[2], row_cells[3], "YES", row_cells[4]]
+                        elif len(row_cells) >= 6:
+                            if not row_cells[4].upper() in ("YES", "NO", "TRUE", "FALSE", "1", "0"):
+                                row_cells = [row_cells[0], row_cells[1], row_cells[2], row_cells[3], "YES", row_cells[4]]
+                    else:
+                        # Stock Table: [Length, Width, Qty, Material, Label, Price]
+                        if len(row_cells) >= 6 and row_cells[4].upper() in ("YES", "NO", "TRUE", "FALSE", "1", "0"):
+                            price_val = row_cells[6] if len(row_cells) > 6 else "0.0"
+                            row_cells = [row_cells[0], row_cells[1], row_cells[2], row_cells[3], row_cells[5], price_val]
 
                 for j, cell_str in enumerate(row_cells):
                     target_c = start_c + j

@@ -78,3 +78,50 @@ def test_two_row_toolbars_layout(qapp):
     assert view.btn_start.text() != ""
     assert view.pieces_table.columnCount() == 7
     assert view.stock_table.columnCount() == 7
+
+def test_progress_feedback_no_error(qapp):
+    """Verify that _on_optimization_progress updates button without any attribute error."""
+    view = CuttingOptimizationView()
+    # Calling progress should safely update button text without throwing AttributeError
+    view._on_optimization_progress(35, "Testing progress...")
+    assert "35%" in view.btn_start.text()
+
+def test_table_copy_paste_and_event_handling(qapp):
+    """Verify universal copy and paste between tables and external data."""
+    from PyQt6.QtWidgets import QApplication
+
+    view = CuttingOptimizationView()
+    # Set up piece rows
+    view.pieces_table.setRowCount(2)
+    view._set_piece_row(0, 5000, 0, 10, "IPE 200", False, "B-01")
+    view._set_piece_row(1, 3000, 200, 5, "PL 10mm", True, "PL-01")
+
+    # Select all rows in pieces_table and copy
+    view.pieces_table.selectAll()
+    view._handle_clipboard_copy(view.pieces_table)
+
+    cb_text = QApplication.clipboard().text()
+    assert "5000" in cb_text
+    assert "IPE 200" in cb_text
+    assert "PL 10mm" in cb_text
+
+    # Clear stock table and paste copied rows into stock_table
+    view.stock_table.setRowCount(0)
+    view._handle_clipboard_paste(view.stock_table, is_stock=True, text_override=cb_text)
+
+    assert view.stock_table.rowCount() == 2
+    assert view.stock_table.item(0, 1).text() == "5000"
+    assert view.stock_table.item(0, 4).text() == "IPE 200"
+    assert view.stock_table.item(1, 1).text() == "3000"
+
+    # Simulate Excel paste into pieces_table
+    excel_data = "6200\t0\t8\tHEA 300\tYES\tCOL-1\n4500\t0\t12\tHEA 300\tYES\tCOL-2"
+    view.pieces_table.setRowCount(0)
+    view._handle_clipboard_paste(view.pieces_table, is_stock=False, text_override=excel_data)
+
+    assert view.pieces_table.rowCount() == 2
+    assert view.pieces_table.item(0, 1).text() == "6200"
+    assert view.pieces_table.item(0, 4).text() == "HEA 300"
+    assert view.pieces_table.item(0, 6).text() == "COL-1"
+    assert view.pieces_table.item(1, 1).text() == "4500"
+
