@@ -1,5 +1,5 @@
 """
-Cutting Canvas Widget for SteelNest Pro
+Cutting Canvas Widget for WafraCut Pro
 Renders interactive, CAD-grade cutting layouts for 2D Plates/Sheets and 1D Linear Stock.
 Features:
 - Dimension callouts (Sizes Piece)

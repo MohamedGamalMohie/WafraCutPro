@@ -42,22 +42,22 @@ class ProjectDialog(QDialog):
         
         self.kerf_spin = QDoubleSpinBox()
         self.kerf_spin.setRange(0.0, 20.0)
-        self.kerf_spin.setValue(project.settings.kerf_mm if project else 3.0)
+        self.kerf_spin.setValue(project.settings.kerf_mm if project else DEFAULT_KERF)
         self.kerf_spin.setSuffix(" mm")
 
         self.trim_start_spin = QDoubleSpinBox()
         self.trim_start_spin.setRange(0.0, 100.0)
-        self.trim_start_spin.setValue(project.settings.trim_start_mm if project else 15.0)
+        self.trim_start_spin.setValue(project.settings.trim_start_mm if project else DEFAULT_TRIM_START)
         self.trim_start_spin.setSuffix(" mm")
 
         self.trim_end_spin = QDoubleSpinBox()
         self.trim_end_spin.setRange(0.0, 100.0)
-        self.trim_end_spin.setValue(project.settings.trim_end_mm if project else 15.0)
+        self.trim_end_spin.setValue(project.settings.trim_end_mm if project else DEFAULT_TRIM_END)
         self.trim_end_spin.setSuffix(" mm")
 
         self.remnant_spin = QDoubleSpinBox()
         self.remnant_spin.setRange(0.0, 3000.0)
-        self.remnant_spin.setValue(project.settings.min_remnant_length_mm if project else 500.0)
+        self.remnant_spin.setValue(project.settings.min_remnant_length_mm if project else DEFAULT_MIN_REMNANT)
         self.remnant_spin.setSuffix(" mm")
 
         s_form.addRow("Saw Blade Kerf:", self.kerf_spin)

@@ -1,5 +1,5 @@
 """
-Unit tests for Cutting Optimization Pro advanced features in SteelNest Pro:
+Unit tests for Cutting Optimization Pro advanced features in WafraCut Pro:
 - Fractional & Unitless numeric parsing
 - Guillotine packing vs Nested CAD packing
 - Similar layout grouping with repetition counts

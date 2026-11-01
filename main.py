@@ -1,5 +1,5 @@
 """
-SteelNest Pro - Windows Launcher
+WafraCut Pro - Windows Launcher
 """
 import sys
 import os

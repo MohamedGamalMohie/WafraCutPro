@@ -1,5 +1,5 @@
 """
-Comprehensive Test Suite for SteelNest Pro
+Comprehensive Test Suite for WafraCut Pro
 Implements rigorous automated verification for all 14 mandatory cases
 defined in the Master Specification.
 """

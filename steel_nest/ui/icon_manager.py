@@ -1,5 +1,5 @@
 """
-Modern High-DPI Vector Icon Manager for SteelNest Pro
+Modern High-DPI Vector Icon Manager for WafraCut Pro
 Renders crisp, resolution-independent vector icons for all application actions.
 """
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QPen, QBrush, QFont, QPainterPath

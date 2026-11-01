@@ -350,7 +350,7 @@ class GuillotinePlatePacker:
 
 class PlateOptimizer:
     """
-    Unified 2D Plate and Sheet Optimization Engine for SteelNest Pro.
+    Unified 2D Plate and Sheet Optimization Engine for WafraCut Pro.
     Integrates Guillotine and Non-Guillotine (Nested CAD) algorithms with full
     manufacturing constraints, adjustable optimization levels, and layout grouping.
     """

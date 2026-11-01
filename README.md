@@ -6,7 +6,7 @@
 ![Solver](https://img.shields.io/badge/Optimization-OR--Tools%20CP--SAT-orange)
 ![Reports](https://img.shields.io/badge/Reports-Excel%208--Sheet%20openpyxl-green)
 
-**SteelNest Pro** is an engineering-grade Windows desktop application engineered for structural steel fabricators, manufacturing workshops, and technical estimation offices. It optimizes cutting plans for structural steel sections (beams, columns, hollow sections, angles, pipes) and steel plates, minimizing material waste while strictly respecting physical fabrication constraints.
+**WafraCut Pro** is an engineering-grade Windows desktop application engineered for structural steel fabricators, manufacturing workshops, and technical estimation offices. It optimizes cutting plans for structural steel sections (beams, columns, hollow sections, angles, pipes) and steel plates, minimizing material waste while strictly respecting physical fabrication constraints.
 
 ---
 
@@ -30,7 +30,7 @@
 
 ## ⚡ Three Essential Linear Nesting Modes
 
-SteelNest Pro features three distinct mathematical nesting modes implemented as strict business rules:
+WafraCut Pro features three distinct mathematical nesting modes implemented as strict business rules:
 
 | Nesting Mode | Objective & Rule Enforcement | Typical Use Case |
 | :--- | :--- | :--- |
@@ -38,7 +38,7 @@ SteelNest Pro features three distinct mathematical nesting modes implemented as 
 | **Mode 2: Single Cut per Bar** *(Strict 1 Cut / Bar)* | • Strictly limits each stock bar to **at most ONE finished piece**.<br>• Never combines two parts on the same bar.<br>• Accurately reports remaining bar length as offcut/waste. | Heavy crane girders, specialized splice-free elements, strict quality contracts. |
 | **Mode 3: Double Cuts per Bar** *(Max 2 Cuts / Bar)* | • Strictly restricts each bar to **one or two finished pieces**.<br>• Never places 3 or more pieces on a single bar.<br>• Solves optimal pairwise cut matching. | Dual-head automatic sawing lines, transport-limited handling. |
 
-> **Comparative Evaluation**: SteelNest Pro provides a **"Compare All 3 Modes Side-by-Side"** feature allowing production managers to evaluate material consumption differences instantly.
+> **Comparative Evaluation**: WafraCut Pro provides a **"Compare All 3 Modes Side-by-Side"** feature allowing production managers to evaluate material consumption differences instantly.
 
 ---
 
@@ -172,4 +172,4 @@ python build_windows.py
 ```
 
 The resulting folder and `.exe` will be located in:
-`dist/SteelNestPro/SteelNestPro.exe`
+`dist/WafraCutPro/WafraCutPro.exe`

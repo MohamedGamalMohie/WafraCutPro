@@ -1,5 +1,5 @@
 """
-DXF Exporter for SteelNest Pro
+DXF Exporter for WafraCut Pro
 Generates standard AutoCAD ASCII DXF files (AC1009 / R12) for 2D plate nesting layouts.
 """
 from pathlib import Path

@@ -1,5 +1,5 @@
 """
-Complex Products Definition and Parametric Generator for SteelNest Pro
+Complex Products Definition and Parametric Generator for WafraCut Pro
 Allows wood, cabinet, and fabrication workshops to generate complete cut lists
 for standard products (Cabinets, Cupboards, Bookshelves, Desks, Drawers)
 based on external product dimensions and board thickness.

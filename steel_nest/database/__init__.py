@@ -1,5 +1,5 @@
 """
-Database package for SteelNest Pro
+Database package for WafraCut Pro
 """
 from steel_nest.database.db_manager import DatabaseManager
 from steel_nest.database.repositories import (

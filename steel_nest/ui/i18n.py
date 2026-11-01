@@ -1,5 +1,5 @@
 """
-Multi-Language Translation System for SteelNest Pro
+Multi-Language Translation System for WafraCut Pro
 Supports Arabic (العربية), English, and French (Français).
 """
 from typing import Dict

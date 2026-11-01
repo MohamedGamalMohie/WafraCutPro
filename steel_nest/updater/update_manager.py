@@ -17,7 +17,7 @@ from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
 from steel_nest.config import APP_VERSION, APP_NAME
 
-CONFIG_DIR = Path.home() / ".steelnest_pro"
+CONFIG_DIR = Path.home() / ".wafracut_pro"
 CONFIG_FILE = CONFIG_DIR / "updater_config.json"
 
 DEFAULT_MANIFEST_URL = "https://raw.githubusercontent.com/MohamedGamalMohie/WafraCutPro/main/version.json"

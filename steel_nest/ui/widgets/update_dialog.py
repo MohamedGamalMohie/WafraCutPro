@@ -360,7 +360,7 @@ class UpdateCenterWidget(QWidget):
         self.lbl_progress_status.show()
         self.lbl_progress_status.setText("بدء تنزيل حزمة التحديث...")
 
-        updates_dir = Path.home() / ".steelnest_pro" / "updates"
+        updates_dir = Path.home() / ".wafracut_pro" / "updates"
         updates_dir.mkdir(parents=True, exist_ok=True)
         file_ext = ".exe"
         if ".zip" in self.latest_info.download_url.lower():

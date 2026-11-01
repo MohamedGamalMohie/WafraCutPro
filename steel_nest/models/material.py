@@ -1,5 +1,5 @@
 """
-Material and Profile Data Models for SteelNest Pro
+Material and Profile Data Models for WafraCut Pro
 """
 from dataclasses import dataclass, field
 from typing import Optional

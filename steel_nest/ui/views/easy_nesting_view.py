@@ -541,7 +541,7 @@ class EasyNestingView(QWidget):
         QMessageBox.information(self, "نتيجة الاستيراد", msg)
 
     def _download_template(self):
-        path, _ = QFileDialog.getSaveFileName(self, "حفظ نموذج الإكسيل", "SteelNest_CutList_Template.xlsx", "Excel Files (*.xlsx)")
+        path, _ = QFileDialog.getSaveFileName(self, "حفظ نموذج الإكسيل", "WafraCut_CutList_Template.xlsx", "Excel Files (*.xlsx)")
         if path:
             TemplateGenerator.generate_unified_cut_list_template(path)
             QMessageBox.information(

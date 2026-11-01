@@ -1,5 +1,5 @@
 """
-Excel and CSV Import Module for SteelNest Pro
+Excel and CSV Import Module for WafraCut Pro
 Supports robust parsing, header detection, column mapping, and error reporting.
 """
 import csv

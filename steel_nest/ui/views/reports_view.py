@@ -122,7 +122,7 @@ class ReportsView(QWidget):
             from steel_nest.models.project import Project
             proj = Project(id="TEMP", name="Nesting Project", code="PRJ-01")
 
-        default_filename = f"SteelNest_{proj.code}_{self.last_result.mode}.xlsx"
+        default_filename = f"WafraCut_{proj.code}_{self.last_result.mode}.xlsx"
         path, _ = QFileDialog.getSaveFileName(self, "Save Excel Workbook", default_filename, "Excel Files (*.xlsx)")
         if not path:
             return

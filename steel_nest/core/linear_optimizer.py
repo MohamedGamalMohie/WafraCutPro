@@ -45,31 +45,28 @@ class LinearOptimizer:
     def _group_similar_linear_plans(plans: List[LinearBarPlan]) -> List[LinearBarPlan]:
         """
         Groups identical linear cutting patterns into a single plan with repetition_count.
-        Greatly accelerates GUI rendering, tab generation, and memory efficiency.
+        Uses high-speed O(1) hash lookup for instant pattern aggregation even with thousands of bars.
         """
         if not plans:
             return []
 
-        grouped: List[LinearBarPlan] = []
+        grouped_dict: Dict[tuple, LinearBarPlan] = {}
         for plan in plans:
-            matched = False
             plan_cuts = tuple(round(s.length, 1) for s in plan.segments)
-            for g in grouped:
-                g_cuts = tuple(round(s.length, 1) for s in g.segments)
-                if (
-                    round(g.stock_length, 1) == round(plan.stock_length, 1)
-                    and g.designation == plan.designation
-                    and g.grade == plan.grade
-                    and g.stock_id == plan.stock_id
-                    and g.is_remnant_stock == plan.is_remnant_stock
-                    and g_cuts == plan_cuts
-                ):
-                    g.repetition_count += getattr(plan, 'repetition_count', 1)
-                    matched = True
-                    break
-            if not matched:
-                grouped.append(plan)
+            key = (
+                round(plan.stock_length, 1),
+                plan.designation,
+                plan.grade,
+                plan.stock_id,
+                plan.is_remnant_stock,
+                plan_cuts
+            )
+            if key in grouped_dict:
+                grouped_dict[key].repetition_count += getattr(plan, 'repetition_count', 1)
+            else:
+                grouped_dict[key] = plan
 
+        grouped = list(grouped_dict.values())
         for idx, p in enumerate(grouped):
             p.bar_index = idx + 1
 
@@ -295,6 +292,8 @@ class LinearOptimizer:
                         best_slack = slack
                         best_fit_count = pack_n
                         best_len = st_len
+                        if slack == 0:
+                            break
 
                 if best_len is not None:
                     for idx, st in enumerate(stock_pool):
@@ -757,16 +756,20 @@ class LinearOptimizer:
             best_bar_idx = None
             min_remaining_slack = float('inf')
 
-            # Try to place into an existing open bar
+            # Try to place into an existing open bar with fast pruning
             for b_idx, bar in enumerate(active_bars):
                 current_used = bar["total_length"]
                 # Additional kerf needed if bar already has cuts
                 extra_kerf = self.kerf if bar["items"] else 0.0
-                new_used = current_used + extra_kerf + req_len
-                slack = bar["usable_length"] - new_used
-                if slack >= 0 and slack < min_remaining_slack:
+                rem_usable = bar["usable_length"] - current_used - extra_kerf
+                if rem_usable < req_len:
+                    continue
+                slack = rem_usable - req_len
+                if slack < min_remaining_slack:
                     min_remaining_slack = slack
                     best_bar_idx = b_idx
+                    if slack == 0:
+                        break  # Exact fit found, no better slack possible
 
             if best_bar_idx is not None:
                 # Add to existing bar

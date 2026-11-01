@@ -1,5 +1,5 @@
 """
-Professional Streamlined Excel Export Engine for SteelNest Pro
+Professional Streamlined Excel Export Engine for WafraCut Pro
 Built using openpyxl with clean workshop styling, auto-filtering,
 freeze panes, and zero pricing clutter.
 """

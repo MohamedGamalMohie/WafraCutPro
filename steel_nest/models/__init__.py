@@ -1,5 +1,5 @@
 """
-Models package for SteelNest Pro
+Models package for WafraCut Pro
 """
 from steel_nest.models.material import SteelProfile, PlateSpecification
 from steel_nest.models.stock import StockItem, RemnantItem

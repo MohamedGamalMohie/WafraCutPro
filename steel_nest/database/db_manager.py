@@ -1,21 +1,30 @@
 """
-SQLite Database Manager and Schema Initialization
+WafraCut Pro - SQLite Database Manager and Schema Initialization
 """
 import os
 import sqlite3
 import json
+import shutil
 from pathlib import Path
 from typing import Optional
 from contextlib import contextmanager
 from steel_nest.config import STANDARD_SECTIONS, STANDARD_STEEL_GRADES
 
-DEFAULT_DB_PATH = Path.home() / ".steelnest_pro" / "steelnest_pro.db"
+OLD_DB_DIR = Path.home() / ".steelnest_pro"
+APP_DATA_DIR = Path.home() / ".wafracut_pro"
+DEFAULT_DB_PATH = APP_DATA_DIR / "wafracut_pro.db"
 
 class DatabaseManager:
     def __init__(self, db_path: Optional[str] = None):
         if db_path is None:
-            db_dir = Path.home() / ".steelnest_pro"
-            db_dir.mkdir(parents=True, exist_ok=True)
+            APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
+            # Seamless migration from legacy .steelnest_pro if needed
+            old_db = OLD_DB_DIR / "steelnest_pro.db"
+            if old_db.exists() and not DEFAULT_DB_PATH.exists():
+                try:
+                    shutil.copy2(str(old_db), str(DEFAULT_DB_PATH))
+                except Exception:
+                    pass
             self.db_path = str(DEFAULT_DB_PATH)
         else:
             self.db_path = db_path

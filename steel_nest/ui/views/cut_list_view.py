@@ -379,7 +379,7 @@ class CutListView(QWidget):
         QMessageBox.information(self, "Import Results", msg)
 
     def _download_template(self):
-        path, _ = QFileDialog.getSaveFileName(self, "Save Input Template", "SteelNest_CutList_Template.xlsx", "Excel Files (*.xlsx)")
+        path, _ = QFileDialog.getSaveFileName(self, "Save Input Template", "WafraCut_CutList_Template.xlsx", "Excel Files (*.xlsx)")
         if path:
             if self.tabs.currentIndex() == 1:
                 TemplateGenerator.generate_plate_cut_list_template(path)

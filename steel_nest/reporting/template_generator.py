@@ -1,5 +1,5 @@
 """
-Excel Template Generator for SteelNest Pro
+Excel Template Generator for WafraCut Pro
 Generates blank input templates with sample rows, comments, and instructions.
 """
 import openpyxl

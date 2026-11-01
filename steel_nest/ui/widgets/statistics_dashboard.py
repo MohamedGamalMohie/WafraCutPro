@@ -1,5 +1,5 @@
 """
-Professional Statistics Dashboard for SteelNest Pro
+Professional Statistics Dashboard for WafraCut Pro
 Faithfully replicates the complete statistics structure and tabbed categories
 of Cutting Optimization Pro:
 - Top Sub-Tabs: Statistics (2D) | Statistics (1D) | Price

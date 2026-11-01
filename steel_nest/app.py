@@ -20,7 +20,7 @@ def setup_crash_protection():
         err_msg = "".join(traceback.format_exception(exctype, value, tb))
         print("EXCEPTION CAUGHT:", err_msg, file=sys.stderr)
         try:
-            log_dir = Path.home() / ".steelnest_pro"
+            log_dir = Path.home() / ".wafracut_pro"
             log_dir.mkdir(parents=True, exist_ok=True)
             with open(log_dir / "error.log", "a", encoding="utf-8") as f:
                 f.write(f"\n--- {datetime.now()} ---\n{err_msg}\n")

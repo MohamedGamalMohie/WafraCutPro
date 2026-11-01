@@ -1,5 +1,5 @@
 """
-Core computational packages for SteelNest Pro
+Core computational packages for WafraCut Pro
 """
 from steel_nest.core.validation import InputValidator
 from steel_nest.core.linear_optimizer import LinearOptimizer

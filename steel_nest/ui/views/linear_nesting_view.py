@@ -92,22 +92,22 @@ class LinearNestingView(QWidget):
 
         self.kerf_spin = QDoubleSpinBox()
         self.kerf_spin.setRange(0.0, 20.0)
-        self.kerf_spin.setValue(3.0)
+        self.kerf_spin.setValue(DEFAULT_KERF)
         self.kerf_spin.setSuffix(" mm")
 
         self.trim_start_spin = QDoubleSpinBox()
         self.trim_start_spin.setRange(0.0, 100.0)
-        self.trim_start_spin.setValue(15.0)
+        self.trim_start_spin.setValue(DEFAULT_TRIM_START)
         self.trim_start_spin.setSuffix(" mm")
 
         self.trim_end_spin = QDoubleSpinBox()
         self.trim_end_spin.setRange(0.0, 100.0)
-        self.trim_end_spin.setValue(15.0)
+        self.trim_end_spin.setValue(DEFAULT_TRIM_END)
         self.trim_end_spin.setSuffix(" mm")
 
         self.min_remnant_spin = QDoubleSpinBox()
         self.min_remnant_spin.setRange(0.0, 5000.0)
-        self.min_remnant_spin.setValue(500.0)
+        self.min_remnant_spin.setValue(DEFAULT_MIN_REMNANT)
         self.min_remnant_spin.setSuffix(" mm")
 
         r_form.addRow("Saw Blade Kerf:", self.kerf_spin)

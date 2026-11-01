@@ -1,5 +1,5 @@
 """
-Database Repositories for SteelNest Pro
+Database Repositories for WafraCut Pro
 """
 import json
 import uuid

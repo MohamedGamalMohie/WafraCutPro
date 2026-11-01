@@ -1,5 +1,5 @@
 """
-SteelNest Pro - Main Application Window
+WafraCut Pro - Main Application Window
 Replicates the functional layout and workflow of Cutting Optimization Pro:
 - Top Menu Bar (File, Settings, Materials, Project, Help)
 - Left Pane: Pieces Table (Top) & Stock Table (Bottom) with full toolbar actions.

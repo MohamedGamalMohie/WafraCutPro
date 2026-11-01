@@ -1,5 +1,5 @@
 """
-Reporting package for SteelNest Pro
+Reporting package for WafraCut Pro
 """
 from steel_nest.reporting.excel_exporter import ExcelReportExporter
 from steel_nest.reporting.excel_importer import ExcelDataImporter

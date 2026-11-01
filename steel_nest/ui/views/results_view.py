@@ -215,7 +215,7 @@ class ResultsView(QWidget):
             from steel_nest.models.project import Project, ProjectSettings
             proj = Project(id="QUICK-PRJ", name="مشروع تقطيع الورشة", code="PRJ-01")
 
-        default_name = f"SteelNest_Cutting_Plan_{self.current_result.project_id or 'Workshop'}.xlsx"
+        default_name = f"WafraCut_Cutting_Plan_{self.current_result.project_id or 'Workshop'}.xlsx"
         file_path, _ = QFileDialog.getSaveFileName(
             self, "حفظ وتصدير شيت إكسيل للورشة", default_name, "Excel Files (*.xlsx)"
         )

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 APP_NAME = "WafraCut Pro"
-APP_VERSION = "1.2.1"
+APP_VERSION = "1.2.2"
 APP_ORGANIZATION = "WafraCut Technologies"
 
 # Optimization Modes
@@ -109,13 +109,14 @@ STANDARD_SECTIONS: Dict[str, List[Tuple[str, float]]] = {
     ]
 }
 
-# Standard Default Cutting Parameters
-DEFAULT_KERF = 3.0           # mm (Saw blade width)
-DEFAULT_TRIM_START = 15.0    # mm (End trimming for square / clean cut)
-DEFAULT_TRIM_END = 15.0      # mm (End trimming)
-DEFAULT_MIN_REMNANT = 500.0  # mm (Minimum offcut length to be classified as reusable)
+# Standard Default Cutting Parameters (Default: 0.0 for pure cut size without kerf/trimming)
+DEFAULT_KERF = 0.0           # mm (Saw blade width)
+DEFAULT_TRIM_START = 0.0     # mm (End trimming for square / clean cut)
+DEFAULT_TRIM_END = 0.0       # mm (End trimming)
+DEFAULT_MIN_REMNANT = 0.0    # mm (Minimum offcut length to be classified as reusable)
 DEFAULT_TIME_LIMIT_SEC = 30  # seconds
 
 # Plate Nesting Defaults
-DEFAULT_PLATE_KERF = 4.0     # mm
-DEFAULT_PLATE_MARGIN = 10.0  # mm from edge of plate
+DEFAULT_PLATE_KERF = 0.0     # mm
+DEFAULT_PLATE_MARGIN = 0.0   # mm from edge of plate
+DEFAULT_MIN_USABLE_WASTE = 0.0 # mm Useful waste limit

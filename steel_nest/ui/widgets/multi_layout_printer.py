@@ -1,5 +1,5 @@
 """
-Multi-Layout Printing, Image Batch Export, and CNC Cuts Exporter for SteelNest Pro
+Multi-Layout Printing, Image Batch Export, and CNC Cuts Exporter for WafraCut Pro
 Supports:
 1. Printing 1, 2, 4, or 6 layouts per page on any Windows printer / PDF.
 2. 1-Click Batch Image Export (All sheets saved as high-resolution PNG/JPG).
@@ -339,7 +339,7 @@ class MultiLayoutPrintDialog(QDialog):
 
         lines = []
         lines.append("=================================================================")
-        lines.append(f"SteelNest Pro — CNC Saw & Cutting Sequence Definition")
+        lines.append(f"WafraCut Pro — CNC Saw & Cutting Sequence Definition")
         lines.append(f"Project: {self.result.project_id or 'PRJ-CURRENT'} | Date: {self.result.created_at}")
         lines.append("=================================================================\n")
 
@@ -482,7 +482,7 @@ class CNCCutSequenceDialog(QDialog):
 
 class CuttingPrintPdfDialog(QDialog):
     """
-    Unified, smooth Print & PDF Export dialog for SteelNest Pro.
+    Unified, smooth Print & PDF Export dialog for WafraCut Pro.
     Allows:
     - Direct Windows Printing or saving high-resolution vector PDF
     - Selective printing: All patterns, Current pattern only, or Custom page range (e.g. 1-3, 5)

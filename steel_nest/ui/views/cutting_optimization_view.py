@@ -1,5 +1,5 @@
 """
-Cutting Optimization Pro View for SteelNest Pro
+Cutting Optimization Pro View for WafraCut Pro
 Faithfully replicates the dual-pane workflow and classic desktop interface of Cutting Optimization Pro:
 - Left Pane: Pieces Table (Top) & Stock Table (Bottom) with full toolbar actions.
 - Right Pane: Big Green Start Button, Results (2D), Results (1D), Statistics, Pattern Tabs (#1, #2...),
@@ -94,7 +94,7 @@ class CuttingSettingsDialog(QDialog):
 
         self.spin_useful_waste = QDoubleSpinBox()
         self.spin_useful_waste.setRange(0.0, 10000.0)
-        self.spin_useful_waste.setValue(getattr(settings, "min_usable_waste_mm", 100.0))
+        self.spin_useful_waste.setValue(getattr(settings, "min_usable_waste_mm", 0.0))
         self.spin_useful_waste.setSuffix(" mm")
         f_gen.addRow(t("useful_waste"), self.spin_useful_waste)
 
@@ -1325,14 +1325,14 @@ class CuttingOptimizationView(QWidget):
                 })
 
         settings_dict = {
-            "blade_kerf_linear": getattr(self.settings, 'blade_kerf_linear', 3.0),
-            "blade_kerf_plate": getattr(self.settings, 'blade_kerf_plate', 3.0),
-            "trim_left": getattr(self.settings, 'trim_left', 5.0),
-            "trim_right": getattr(self.settings, 'trim_right', 5.0),
-            "trim_top": getattr(self.settings, 'trim_top', 5.0),
-            "trim_bottom": getattr(self.settings, 'trim_bottom', 5.0),
-            "min_remnant_length": getattr(self.settings, 'min_remnant_length', 300.0),
-            "min_remnant_width": getattr(self.settings, 'min_remnant_width', 300.0),
+            "blade_kerf_linear": getattr(self.settings, 'blade_kerf_linear', getattr(self.settings, 'kerf_mm', 0.0)),
+            "blade_kerf_plate": getattr(self.settings, 'blade_kerf_plate', getattr(self.settings, 'plate_kerf_mm', 0.0)),
+            "trim_left": getattr(self.settings, 'trim_left', getattr(self.settings, 'trim_start_mm', 0.0)),
+            "trim_right": getattr(self.settings, 'trim_right', getattr(self.settings, 'trim_end_mm', 0.0)),
+            "trim_top": getattr(self.settings, 'trim_top', 0.0),
+            "trim_bottom": getattr(self.settings, 'trim_bottom', 0.0),
+            "min_remnant_length": getattr(self.settings, 'min_remnant_length', getattr(self.settings, 'min_remnant_length_mm', 0.0)),
+            "min_remnant_width": getattr(self.settings, 'min_remnant_width', 0.0),
             "linear_mode": self.linear_mode.value if hasattr(self.linear_mode, 'value') else str(self.linear_mode)
         }
 
@@ -2510,7 +2510,7 @@ class CuttingOptimizationView(QWidget):
     def _save_last_stock(self):
         """Persists the current stock table rows so they are preserved across restarts."""
         try:
-            app_dir = Path.home() / ".steelnest_pro"
+            app_dir = Path.home() / ".wafracut_pro"
             app_dir.mkdir(parents=True, exist_ok=True)
             stock_file = app_dir / "last_stock.json"
             rows = []
@@ -2542,9 +2542,11 @@ class CuttingOptimizationView(QWidget):
         """Loads the last saved stock table, or falls back to standard inventory."""
         self._is_loading_stock = True
         try:
-            stock_file = Path.home() / ".steelnest_pro" / "last_stock.json"
-            if stock_file.exists():
-                with open(stock_file, "r", encoding="utf-8") as f:
+            stock_file = Path.home() / ".wafracut_pro" / "last_stock.json"
+            legacy_stock_file = Path.home() / ".steelnest_pro" / "last_stock.json"
+            target_file = stock_file if stock_file.exists() else (legacy_stock_file if legacy_stock_file.exists() else None)
+            if target_file and target_file.exists():
+                with open(target_file, "r", encoding="utf-8") as f:
                     rows = json.load(f)
                 if rows:
                     self.stock_table.setRowCount(len(rows))

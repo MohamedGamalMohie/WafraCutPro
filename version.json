@@ -1,10 +1,10 @@
 {
-  "latest_version": "1.2.1",
-  "release_date": "2026-10-28",
-  "download_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases/download/v1.2.1/WafraCutPro_v1.2.1_Setup.exe",
+  "latest_version": "1.2.2",
+  "release_date": "2026-11-01",
+  "download_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases/download/v1.2.2/WafraCutPro_v1.2.2_Setup.exe",
   "release_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases",
-  "changelog_ar": "• إصلاح مشكلة خطأ التحديث [WinError 87] وإعادة التشغيل السلس عبر معالج التثبيت\n• تنظيم شريطي أدوات القطع والاستوك في صفين أنيقين لمنع اختصار أو تداخل الكلمات\n• ضبط عرض أعمدة الجداول بحيث تظهر جميع العناوين واضحة بالكامل بدون قص (Label و Price)\n• تحسين وتسريع خوارزميات النستنج بنسبة تفوق 1000 ضعف للكميات الضخمة (الآلاف من القطع) بدون تهنيج\n• تجميع نماذج التقطيع المتطابقة في تبويب واحد مع عداد التكرار #(xCount) لمنع تجمد الواجهة وتسهيل المتابعة\n• عرض نسبة التقدم المئوية المباشرة أثناء سير الحسابات",
-  "changelog_en": "• Fixed updater crash [WinError 87] and seamless installer relaunch on Windows\n• Split Pieces and Stock toolbars into 2 clean rows preventing squeezed button text\n• Perfectly balanced table columns preventing truncation of Label and Price headers\n• 1000x nesting performance speedup for massive quantities (thousands of parts) eliminating UI freeze\n• Grouped identical cut patterns into consolidated tabs with repetition counts #(xCount)\n• Live calculation percentage feedback on Start button and status bar",
+  "changelog_ar": "• جعل القيم الافتراضية صفراً لسمك سلاح القطع وتهذيب الحواف وخلوص الألواح والحد الأدنى للفواضل لضمان أقصى استغلال للمقاسات\n• استبدال وإزالة أي ذكر لكلمة steelnest بالكامل وتوحيد هوية البرنامج تحت اسم WafraCut Pro في كافة الملفات والتقارير والمجلدات\n• تسريع وتطوير محرك النستنج والخوارزميات عبر تقنية التجميع اللحظي O(1) والتقليم السريع للبحث المباشر\n• ترحيل تلقائي سلس لقواعد البيانات ومخزون الاستوك المحفوظ إلى المجلد الجديد (.wafracut_pro)\n• تحسين أداء استجابة الجداول والواجهة الرسومية عند التعامل مع آلاف القطع",
+  "changelog_en": "• Default zero values for saw kerf, end trimming, plate margin, and useful waste allowance\n• Fully eradicated legacy 'steelnest' naming and unified software branding under WafraCut Pro across all files, reports, and folders\n• Boosted nesting algorithm speed with instant O(1) pattern aggregation and fast pruning\n• Seamless automatic data and stock migration to new user configuration directory (.wafracut_pro)\n• Enhanced UI and table responsiveness under high-volume workloads",
   "file_size_mb": 70.0,
   "mandatory": false
 }
