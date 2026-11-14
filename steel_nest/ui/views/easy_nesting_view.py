@@ -246,7 +246,7 @@ class EasyNestingView(QWidget):
         p_row.addWidget(QLabel("سمك المنشار (Kerf):"))
         self.kerf_spin = QDoubleSpinBox()
         self.kerf_spin.setRange(0.0, 20.0)
-        self.kerf_spin.setValue(3.0)
+        self.kerf_spin.setValue(0.0)
         self.kerf_spin.setSuffix(" mm")
         self.kerf_spin.setMaximumWidth(85)
         p_row.addWidget(self.kerf_spin)
@@ -254,7 +254,7 @@ class EasyNestingView(QWidget):
         p_row.addWidget(QLabel("تهذيب الأطراف (Trim):"))
         self.trim_spin = QDoubleSpinBox()
         self.trim_spin.setRange(0.0, 100.0)
-        self.trim_spin.setValue(15.0)
+        self.trim_spin.setValue(0.0)
         self.trim_spin.setSuffix(" mm")
         self.trim_spin.setMaximumWidth(85)
         p_row.addWidget(self.trim_spin)
@@ -262,7 +262,7 @@ class EasyNestingView(QWidget):
         p_row.addWidget(QLabel("خلوص الصاج (Margin):"))
         self.margin_spin = QDoubleSpinBox()
         self.margin_spin.setRange(0.0, 100.0)
-        self.margin_spin.setValue(10.0)
+        self.margin_spin.setValue(0.0)
         self.margin_spin.setSuffix(" mm")
         self.margin_spin.setMaximumWidth(85)
         p_row.addWidget(self.margin_spin)
@@ -670,7 +670,7 @@ class EasyNestingView(QWidget):
             trim_end_mm=self.trim_spin.value(),
             plate_kerf_mm=self.kerf_spin.value(),
             plate_margin_mm=self.margin_spin.value(),
-            min_remnant_length_mm=500.0,
+            min_remnant_length_mm=0.0,
             linear_mode=mode,
             time_limit_sec=20
         )

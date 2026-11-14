@@ -75,7 +75,7 @@ class OptimizationWorker(QThread):
                     optimization_level=getattr(self.settings, "optimization_level", 5),
                     max_cut_length_mm=getattr(self.settings, "max_cut_length_mm", 0.0),
                     min_breakable_waste_mm=getattr(self.settings, "min_breakable_waste_mm", 0.0),
-                    min_usable_waste_mm=getattr(self.settings, "min_usable_waste_mm", 100.0),
+                    min_usable_waste_mm=getattr(self.settings, "min_usable_waste_mm", 0.0),
                     group_identical_layouts=getattr(self.settings, "group_identical_layouts", True),
                     time_limit_sec=self.settings.time_limit_sec
                 )

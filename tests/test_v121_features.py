@@ -54,7 +54,7 @@ def test_pattern_grouping_and_tab_display(qapp):
         StockItem(id="S1", designation="IPE 200", grade="S275JR", length_mm=6000.0, available_qty=50),
     ]
 
-    opt = LinearOptimizer(mode=LinearOptimizationMode.FREE_NESTING)
+    opt = LinearOptimizer(mode=LinearOptimizationMode.FREE_NESTING, trim_start_mm=15.0, trim_end_mm=15.0)
     res = opt.optimize(parts, stock)
 
     # Usable 5970mm fits 3 parts of 1500mm. 13 bars * 3 = 39, plus 1 bar * 1 = 40.

@@ -356,15 +356,15 @@ class PlateOptimizer:
     """
     def __init__(
         self,
-        kerf_mm: float = 4.0,
-        margin_mm: float = 10.0,
+        kerf_mm: float = 0.0,
+        margin_mm: float = 0.0,
         guillotine_cuts_only: bool = False,
         guillotine_first_cut: str = "AUTO",
         guillotine_stages: int = 2,
         optimization_level: int = 5,
         max_cut_length_mm: float = 0.0,
         min_breakable_waste_mm: float = 0.0,
-        min_usable_waste_mm: float = 100.0,
+        min_usable_waste_mm: float = 0.0,
         group_identical_layouts: bool = True,
         time_limit_sec: int = 30
     ):
@@ -649,6 +649,10 @@ class PlateOptimizer:
                 best_plans = plans
                 best_shortages = shortages
 
+            # Fast early exit if 100% parts nested and near-optimal utilization
+            if nested_count == len(items) and total_util >= 98.0:
+                break
+
         return best_plans or ([], {}), best_shortages or {}
 
     def _pack_nested_single(
@@ -876,12 +880,12 @@ class PlateOptimizer:
 
         unique_plans: List[PlateNestPlan] = []
 
-        def plan_signature(p: PlateNestPlan) -> str:
-            # Create a geometric signature of the plate size and placed parts geometry
-            parts_sig = sorted([(round(pt.x, 1), round(pt.y, 1), round(pt.width, 1), round(pt.length, 1)) for pt in p.parts])
-            return f"{p.plate_width:.1f}x{p.plate_length:.1f}x{p.thickness_mm:.1f}|{p.grade}|{parts_sig}"
+        def plan_signature(p: PlateNestPlan):
+            # Fast tuple geometric signature for O(1) hashing
+            parts_sig = tuple(sorted((round(pt.x, 1), round(pt.y, 1), round(pt.width, 1), round(pt.length, 1)) for pt in p.parts))
+            return (round(p.plate_width, 1), round(p.plate_length, 1), round(p.thickness_mm, 1), p.grade, parts_sig)
 
-        seen: Dict[str, PlateNestPlan] = {}
+        seen: Dict[Any, PlateNestPlan] = {}
         for p in plans:
             sig = plan_signature(p)
             if sig in seen:

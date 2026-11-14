@@ -1,10 +1,10 @@
 {
-  "latest_version": "1.2.2",
-  "release_date": "2026-11-01",
-  "download_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases/download/v1.2.2/WafraCutPro_v1.2.2_Setup.exe",
+  "latest_version": "1.2.3",
+  "release_date": "2026-11-14",
+  "download_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases/download/v1.2.3/WafraCutPro_v1.2.3_Setup.exe",
   "release_url": "https://github.com/MohamedGamalMohie/WafraCutPro/releases",
-  "changelog_ar": "• جعل القيم الافتراضية صفراً لسمك سلاح القطع وتهذيب الحواف وخلوص الألواح والحد الأدنى للفواضل لضمان أقصى استغلال للمقاسات\n• استبدال وإزالة أي ذكر لكلمة steelnest بالكامل وتوحيد هوية البرنامج تحت اسم WafraCut Pro في كافة الملفات والتقارير والمجلدات\n• تسريع وتطوير محرك النستنج والخوارزميات عبر تقنية التجميع اللحظي O(1) والتقليم السريع للبحث المباشر\n• ترحيل تلقائي سلس لقواعد البيانات ومخزون الاستوك المحفوظ إلى المجلد الجديد (.wafracut_pro)\n• تحسين أداء استجابة الجداول والواجهة الرسومية عند التعامل مع آلاف القطع",
-  "changelog_en": "• Default zero values for saw kerf, end trimming, plate margin, and useful waste allowance\n• Fully eradicated legacy 'steelnest' naming and unified software branding under WafraCut Pro across all files, reports, and folders\n• Boosted nesting algorithm speed with instant O(1) pattern aggregation and fast pruning\n• Seamless automatic data and stock migration to new user configuration directory (.wafracut_pro)\n• Enhanced UI and table responsiveness under high-volume workloads",
+  "changelog_ar": "• حل جذري لمشكلة نسخ ولصق الخانات والصفوف الفارغة بدون أي ترحيل للقيم مع الحفاظ على أماكنها وإحداثياتها بدقة متناهية\n• القضاء التام على بطء وتهنيج الواجهة عند اللصق عبر تجميد التحديثات المتقطعة وحفظ التغييرات دفعة واحدة\n• تسريع خوارزميات النستنج ثنائي الأبعاد 2D والأحادي 1D مع الخروج المبكر عند الوصول للحل المثالي\n• تأكيد وثبات القيم الافتراضية صفراً في كافة الإعدادات والنوافذ وتحديث المشاريع المخزنة\n• ضمان خلو البرنامج التام من أي أخطاء أثناء تنفيذ النستنج",
+  "changelog_en": "• Fixed copy-paste of blank cells and rows with 1-to-1 coordinate preservation and zero value shifting\n• Eliminated UI freezing and lag during paste operations via batch updates and single disk commits\n• Boosted 1D and 2D nesting engines with early pruning and O(1) layout grouping\n• Confirmed persistent 0.0 defaults across settings dialogs and database repositories\n• Robust optimization worker progress reporting without errors",
   "file_size_mb": 70.0,
   "mandatory": false
 }

@@ -50,12 +50,12 @@ class PlateNestingView(QWidget):
 
         self.kerf_spin = QDoubleSpinBox()
         self.kerf_spin.setRange(0.0, 30.0)
-        self.kerf_spin.setValue(4.0)
+        self.kerf_spin.setValue(0.0)
         self.kerf_spin.setSuffix(" mm")
 
         self.margin_spin = QDoubleSpinBox()
         self.margin_spin.setRange(0.0, 100.0)
-        self.margin_spin.setValue(10.0)
+        self.margin_spin.setValue(0.0)
         self.margin_spin.setSuffix(" mm")
 
         self.check_guillotine = QCheckBox("Enforce Guillotine Straight Cuts Only (Shearing Machine)")

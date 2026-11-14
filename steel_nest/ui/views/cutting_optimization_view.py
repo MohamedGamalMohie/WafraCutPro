@@ -295,6 +295,7 @@ class CuttingOptimizationView(QWidget):
         # Settings defaults
         self.settings = ProjectSettings()
         self.linear_mode = LinearOptimizationMode.FREE_NESTING
+        self._load_settings()
 
         self.update_manager = getattr(parent, 'update_manager', None) or UpdateManager(parent=self)
         self.update_manager.update_detected.connect(self._on_update_detected_in_view)
@@ -1267,6 +1268,7 @@ class CuttingOptimizationView(QWidget):
             self.settings.group_identical_layouts = vals["group_identical"]
             self.linear_mode = vals["mode"]
             set_current_language(vals["language"])
+            self._save_settings()
 
     def save_project_as_file(self, filepath: Optional[str] = None):
         """Saves entire project (Pieces, Stock, Settings) to a .wcp file."""
@@ -2041,35 +2043,45 @@ class CuttingOptimizationView(QWidget):
                     else:
                         item.setText("")
 
-    def _handle_clipboard_copy(self, table: QTableWidget):
-        """Copies selected table cells/rows as clean tab-separated values to system clipboard (Ctrl+C)."""
+    def _handle_clipboard_copy(self, table: QTableWidget) -> str:
+        """Copies selected table cells/rows as clean tab-separated values to system clipboard (Ctrl+C), preserving empty cells and rows."""
         try:
-            selected_items = table.selectedItems()
-            if not selected_items:
+            selected_ranges = table.selectedRanges()
+            if not selected_ranges:
                 curr_item = table.currentItem()
                 if curr_item:
                     is_check_col = (curr_item.column() == 0 or (table == self.pieces_table and curr_item.column() == 5))
-                    val = ("YES" if curr_item.checkState() == Qt.CheckState.Checked else "NO") if is_check_col else curr_item.text()
+                    val = ("YES" if curr_item.checkState() == Qt.CheckState.Checked else "NO") if is_check_col else (curr_item.text() or "")
                     QApplication.clipboard().setText(val)
-                return
+                    return val
+                return ""
 
-            rows = sorted(list(set(item.row() for item in selected_items)))
-            cols = sorted(list(set(item.column() for item in selected_items)))
+            # Compute exact bounding coordinates across all selected ranges
+            selected_rows = set()
+            selected_cols = set()
+            for rg in selected_ranges:
+                for r in range(rg.topRow(), rg.bottomRow() + 1):
+                    selected_rows.add(r)
+                for c in range(rg.leftColumn(), rg.rightColumn() + 1):
+                    selected_cols.add(c)
 
-            min_r = min(rows)
-            max_r = max(rows)
+            rows = sorted(list(selected_rows))
+            cols = sorted(list(selected_cols))
+            if not rows or not cols:
+                return ""
+
             min_c = min(cols)
             max_c = max(cols)
 
             # When copying whole rows or ranges starting from column 0,
             # omit the '#' row counter column (col 0) unless ONLY column 0 was selected.
             omit_index = (min_c == 0 and max_c > 0 and table != self.table_results_text)
-            data_start_c = 1 if omit_index else min_c
+            data_cols = [c for c in cols if not (omit_index and c == 0)]
 
             lines = []
             for r in rows:
                 row_vals = []
-                for c in range(data_start_c, max_c + 1):
+                for c in data_cols:
                     item = table.item(r, c)
                     if not item:
                         row_vals.append("")
@@ -2081,11 +2093,13 @@ class CuttingOptimizationView(QWidget):
                             row_vals.append(item.text().strip())
                 lines.append("\t".join(row_vals))
 
-            tsv_data = "\n".join(lines)
+            tsv_data = "\r\n".join(lines) + "\r\n"
             QApplication.clipboard().setText(tsv_data)
+            return tsv_data
         except Exception as ex:
             import traceback
             traceback.print_exc()
+            return ""
 
     def _show_results_table_context_menu(self, pos):
         menu = QMenu(self)
@@ -2116,19 +2130,28 @@ class CuttingOptimizationView(QWidget):
         menu.exec(table.viewport().mapToGlobal(pos))
 
     def _handle_clipboard_paste(self, table: QTableWidget, is_stock: bool = False, text_override: Optional[str] = None):
-        """Pastes clipboard tabular data into table cell-by-cell matching professional spreadsheet behavior."""
+        """Pastes clipboard tabular data into table cell-by-cell matching professional spreadsheet behavior without value shifting."""
         try:
             raw_text = text_override if text_override is not None else QApplication.clipboard().text()
-            if not raw_text or not raw_text.strip():
+            if not raw_text:
                 return
 
-            # Split into non-empty lines
-            raw_lines = [l for l in raw_text.splitlines() if l.strip()]
+            # Normalize line endings
+            norm = raw_text.replace("\r\n", "\n").replace("\r", "\n")
+            if norm.endswith("\n"):
+                norm = norm[:-1]
+            if not norm and not raw_text.strip():
+                return
+
+            # Split lines strictly preserving all empty rows (do NOT filter out with strip())
+            raw_lines = norm.split("\n")
             if not raw_lines:
                 return
 
             # Detect delimiter (\t from Excel/Sheets, or comma/semicolon from CSV)
-            delim = '\t' if '\t' in raw_lines[0] else (',' if ',' in raw_lines[0] else ';')
+            first_non_empty = next((l for l in raw_lines if l.strip()), raw_lines[0])
+            delim = '\t' if '\t' in first_non_empty else (',' if ',' in first_non_empty else (';' if ';' in first_non_empty else '\t'))
+
             matrix = []
             for line in raw_lines:
                 cells = [c.strip().strip('"').strip("'") for c in line.split(delim)]
@@ -2137,30 +2160,29 @@ class CuttingOptimizationView(QWidget):
             if not matrix:
                 return
 
-            # Detect if first row is a header row (e.g. contains "length", "width", "qty", "#", etc.)
+            # Detect if first row is a genuine text header row (e.g. contains "length", "width", "qty", etc.)
             first_row_lower = [c.lower() for c in matrix[0]]
             is_header = any(
-                h in first_row_lower[0] or (len(first_row_lower) > 1 and h in first_row_lower[1])
-                for h in ["len", "length", "طول", "width", "عرض", "mark", "id", "#", "item", "label", "qty", "material"]
+                h in c for c in first_row_lower
+                for h in ["length", "طول", "width", "عرض", "material", "خامة", "grade", "thickness", "quantity", "الكمية", "mark"]
             )
             data_matrix = matrix[1:] if (is_header and len(matrix) > 1) else matrix
-
             if not data_matrix:
                 return
 
             # Determine target start row and column from selection or current cell
-            selected_items = table.selectedItems()
+            selected_ranges = table.selectedRanges()
             curr_r = table.currentRow()
             curr_c = table.currentColumn()
 
-            if selected_items:
-                start_r = min(it.row() for it in selected_items)
-                sel_min_c = min(it.column() for it in selected_items)
-                sel_max_c = max(it.column() for it in selected_items)
-                if sel_min_c == 0 and sel_max_c > 0 and len(data_matrix[0]) < table.columnCount():
+            if selected_ranges:
+                start_r = min(r.topRow() for r in selected_ranges)
+                min_sel_c = min(r.leftColumn() for r in selected_ranges)
+                max_sel_c = max(r.rightColumn() for r in selected_ranges)
+                if min_sel_c == 0 and max_sel_c > 0 and len(data_matrix[0]) < table.columnCount():
                     start_c = 1
                 else:
-                    start_c = sel_min_c
+                    start_c = min_sel_c
             elif curr_r >= 0 and curr_c >= 0:
                 start_r = curr_r
                 start_c = curr_c if curr_c > 0 else 1
@@ -2177,76 +2199,85 @@ class CuttingOptimizationView(QWidget):
             if has_index_col and start_c >= 1:
                 data_matrix = [r[1:] for r in data_matrix]
 
-            # Ensure table has enough rows
-            needed_rows = start_r + len(data_matrix)
-            if needed_rows > table.rowCount():
-                old_count = table.rowCount()
-                table.setRowCount(needed_rows)
-                for r in range(old_count, needed_rows):
-                    if is_stock:
-                        self._set_empty_stock_row(r)
-                    else:
-                        self._set_empty_piece_row(r)
+            # Fast GUI batch updates: disable repainting and block signals during insertion to prevent freezing & lag
+            table.setUpdatesEnabled(False)
+            table.blockSignals(True)
+            if is_stock:
+                self._is_loading_stock = True
 
-            # Paste 2D cell by cell
-            for i, row_cells in enumerate(data_matrix):
-                target_r = start_r + i
-                # Ensure row index item in col 0 is initialized and valid
-                idx_item = table.item(target_r, 0)
-                if not idx_item:
-                    idx_item = QTableWidgetItem(f"{target_r + 1}")
-                    idx_item.setCheckState(Qt.CheckState.Checked)
-                    table.setItem(target_r, 0, idx_item)
+            try:
+                # Ensure table has enough rows
+                needed_rows = start_r + len(data_matrix)
+                if needed_rows > table.rowCount():
+                    old_count = table.rowCount()
+                    table.setRowCount(needed_rows)
+                    for r in range(old_count, needed_rows):
+                        if is_stock:
+                            self._set_empty_stock_row(r)
+                        else:
+                            self._set_empty_piece_row(r)
 
-                # Column mapping logic for full-row paste (Length, Width, Qty, Material, ...)
-                if start_c == 1 and len(row_cells) >= 4:
-                    if not is_stock:
-                        # Pieces Table: [Length, Width, Qty, Material, Rotation, Label]
-                        if len(row_cells) == 4:
-                            row_cells = [row_cells[0], row_cells[1], row_cells[2], row_cells[3], "YES", ""]
-                        elif len(row_cells) == 5:
-                            if row_cells[4].upper() in ("YES", "NO", "TRUE", "FALSE", "1", "0"):
-                                row_cells = [row_cells[0], row_cells[1], row_cells[2], row_cells[3], row_cells[4], ""]
-                            else:
-                                row_cells = [row_cells[0], row_cells[1], row_cells[2], row_cells[3], "YES", row_cells[4]]
-                        elif len(row_cells) >= 6:
-                            if not row_cells[4].upper() in ("YES", "NO", "TRUE", "FALSE", "1", "0"):
-                                row_cells = [row_cells[0], row_cells[1], row_cells[2], row_cells[3], "YES", row_cells[4]]
-                    else:
-                        # Stock Table: [Length, Width, Qty, Material, Label, Price]
-                        if len(row_cells) >= 6 and row_cells[4].upper() in ("YES", "NO", "TRUE", "FALSE", "1", "0"):
-                            price_val = row_cells[6] if len(row_cells) > 6 else "0.0"
-                            row_cells = [row_cells[0], row_cells[1], row_cells[2], row_cells[3], row_cells[5], price_val]
+                # Paste 2D cell by cell with 1-to-1 exact coordinate placement
+                for i, row_cells in enumerate(data_matrix):
+                    target_r = start_r + i
 
-                for j, cell_str in enumerate(row_cells):
-                    target_c = start_c + j
-                    if target_c >= table.columnCount():
-                        break
+                    # Ensure row index item in col 0 is initialized and valid
+                    idx_item = table.item(target_r, 0)
+                    if not idx_item:
+                        idx_item = QTableWidgetItem(f"{target_r + 1}")
+                        idx_item.setCheckState(Qt.CheckState.Checked)
+                        table.setItem(target_r, 0, idx_item)
 
-                    # Column 0: Index / Active Checkbox
-                    if target_c == 0:
-                        chk_val = cell_str.lower() not in ("no", "0", "false", "off", "لا")
-                        idx_item.setCheckState(Qt.CheckState.Checked if chk_val else Qt.CheckState.Unchecked)
-                        continue
+                    # Only perform cross-table full-row remapping if pasting full 6 columns between Pieces and Stock
+                    mapped_cells = list(row_cells)
+                    if start_c == 1 and len(mapped_cells) == 6:
+                        if is_stock and mapped_cells[4].upper() in ("YES", "NO", "TRUE", "FALSE", "نعم", "لا"):
+                            # Pasting into Stock from Pieces: col 4 is rotation, col 5 is label
+                            mapped_cells = [mapped_cells[0], mapped_cells[1], mapped_cells[2], mapped_cells[3], mapped_cells[5], "0.0"]
+                        elif not is_stock and (mapped_cells[4].upper() not in ("YES", "NO", "TRUE", "FALSE", "نعم", "لا", "")):
+                            # Pasting into Pieces from Stock: col 4 is label, col 5 is price
+                            mapped_cells = [mapped_cells[0], mapped_cells[1], mapped_cells[2], mapped_cells[3], "YES", mapped_cells[4]]
 
-                    # Pieces Table Column 5: Rotation Checkbox
-                    if not is_stock and target_c == 5:
-                        rot_chk = cell_str.lower() not in ("no", "0", "false", "off", "لا", "fixed")
-                        rot_item = table.item(target_r, 5)
-                        if not rot_item:
-                            rot_item = QTableWidgetItem()
-                            table.setItem(target_r, 5, rot_item)
-                        rot_item.setCheckState(Qt.CheckState.Checked if rot_chk else Qt.CheckState.Unchecked)
-                        continue
+                    for j, cell_str in enumerate(mapped_cells):
+                        target_c = start_c + j
+                        if target_c >= table.columnCount():
+                            break
 
-                    # Text cell (Length, Width, Qty, Material, Label, Price)
-                    it = table.item(target_r, target_c)
-                    if not it:
-                        it = QTableWidgetItem()
-                        table.setItem(target_r, target_c, it)
-                    it.setText(cell_str)
+                        # Column 0: Index / Active Checkbox
+                        if target_c == 0:
+                            if cell_str != "":
+                                chk_val = cell_str.lower() not in ("no", "0", "false", "off", "لا")
+                                idx_item.setCheckState(Qt.CheckState.Checked if chk_val else Qt.CheckState.Unchecked)
+                            continue
 
-            self._reindex_table(table)
+                        # Pieces Table Column 5: Rotation Checkbox
+                        if not is_stock and target_c == 5:
+                            rot_item = table.item(target_r, 5)
+                            if not rot_item:
+                                rot_item = QTableWidgetItem()
+                                table.setItem(target_r, 5, rot_item)
+                            if cell_str != "":
+                                rot_chk = cell_str.lower() not in ("no", "0", "false", "off", "لا", "fixed")
+                                rot_item.setCheckState(Qt.CheckState.Checked if rot_chk else Qt.CheckState.Unchecked)
+                            continue
+
+                        # Text cell (Length, Width, Qty, Material, Label, Price)
+                        it = table.item(target_r, target_c)
+                        if not it:
+                            it = QTableWidgetItem()
+                            table.setItem(target_r, target_c, it)
+                        # Set value directly: empty strings remain empty, preventing any value displacement/shifting!
+                        it.setText(cell_str)
+
+                self._reindex_table(table)
+            finally:
+                if is_stock:
+                    self._is_loading_stock = False
+                table.blockSignals(False)
+                table.setUpdatesEnabled(True)
+
+            if is_stock:
+                self._save_last_stock()
             self._update_status_bar()
 
         except Exception as ex:
@@ -2582,3 +2613,45 @@ class CuttingOptimizationView(QWidget):
         for r, (l, w, q, mat, lbl, pr) in enumerate(demo_stock):
             self._set_stock_row(r, l, w, q, mat, lbl, pr)
         self._is_loading_stock = False
+
+    def _save_settings(self):
+        """Persists cutting settings (kerf, trimming, margin, etc.) across sessions."""
+        try:
+            app_dir = Path.home() / ".wafracut_pro"
+            app_dir.mkdir(parents=True, exist_ok=True)
+            settings_file = app_dir / "settings.json"
+            data = {
+                "kerf_mm": self.settings.kerf_mm,
+                "plate_kerf_mm": self.settings.plate_kerf_mm,
+                "trim_start_mm": self.settings.trim_start_mm,
+                "trim_end_mm": self.settings.trim_end_mm,
+                "plate_margin_mm": self.settings.plate_margin_mm,
+                "min_usable_waste_mm": getattr(self.settings, "min_usable_waste_mm", 0.0),
+                "min_remnant_length_mm": getattr(self.settings, "min_remnant_length_mm", 0.0),
+                "guillotine_cuts_only": getattr(self.settings, "guillotine_cuts_only", False),
+                "guillotine_first_cut": getattr(self.settings, "guillotine_first_cut", "AUTO"),
+                "guillotine_stages": getattr(self.settings, "guillotine_stages", 2),
+                "optimization_level": getattr(self.settings, "optimization_level", 5),
+                "max_cut_length_mm": getattr(self.settings, "max_cut_length_mm", 0.0),
+                "min_breakable_waste_mm": getattr(self.settings, "min_breakable_waste_mm", 0.0),
+                "group_identical_layouts": getattr(self.settings, "group_identical_layouts", True),
+            }
+            with open(settings_file, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+    def _load_settings(self):
+        """Loads persistent settings or defaults to 0.0 values."""
+        try:
+            settings_file = Path.home() / ".wafracut_pro" / "settings.json"
+            legacy_settings_file = Path.home() / ".steelnest_pro" / "settings.json"
+            target_file = settings_file if settings_file.exists() else (legacy_settings_file if legacy_settings_file.exists() else None)
+            if target_file and target_file.exists():
+                with open(target_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                for k, v in data.items():
+                    if hasattr(self.settings, k):
+                        setattr(self.settings, k, v)
+        except Exception:
+            pass
